@@ -5,7 +5,7 @@ TARGET_SIZE = 25
 VIDEO_SIZE = (640, 480)
 VIDEO_SOURCE = 0
 
-class Tracker:
+class Tracker(object):
     def __init__(self, targetCls):
         # Create a target image
         self.target = targetCls(25)
@@ -42,8 +42,22 @@ class Tracker:
 
 if __name__=='__main__':
     class DebugTracker(Tracker):
+        def __init__(self, targetCls):
+            super(DebugTracker, self).__init__(targetCls)
+            self.t = cv2.getTickCount()
+            self.sec = cv2.getTickFrequency()
+            self.nFrames = 0
+
         def onFrame(self, img):
+            
             cv2.imshow('tracker', img)
+            self.nFrames += 1
+            
+            if (cv2.getTickCount() - self.t) > self.sec:
+                print "FPS=%d" % self.nFrames
+                self.nFrames = 0
+                self.t = cv2.getTickCount()
+
             ch = 0xFF & cv2.waitKey(1)
             
             if (ch == 'q'):
