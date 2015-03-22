@@ -8,7 +8,7 @@ VIDEO_SOURCE = 0
 class Tracker(object):
     def __init__(self, targetCls):
         # Create a target image
-        self.target = targetCls(25)
+        self.target = targetCls(25).getImage()
         
         # Initialize the video capture
         self.cap = cv2.VideoCapture(VIDEO_SOURCE)
@@ -32,9 +32,14 @@ class Tracker(object):
 
     def onFrame(self, img):
         "Default callback for frame display"
-        pass
+        matches = cv2.matchTemplate(img, self.target, cv2.TM_CCOEFF)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(matches)
+        
+        self.targetPoint = max_loc
 
-    def onCoordinates(self, x, y):
+        self.onCoordinates(img, max_loc[0], max_loc[1])
+
+    def onCoordinates(self, img, x, y):
         pass
 
 
@@ -49,6 +54,7 @@ if __name__=='__main__':
             self.nFrames = 0
 
         def onFrame(self, img):
+            super(DebugTracker, self).onFrame(img)
             
             cv2.imshow('tracker', img)
             self.nFrames += 1
@@ -62,6 +68,9 @@ if __name__=='__main__':
             
             if (ch == 'q'):
                 self.stop()
+
+        def onCoordinates(self, img, x, y):
+            cv2.circle(img, (x,y), 10, color=255, thickness=2)
 
     trk = DebugTracker(TrackingTarget)
     trk.run()
