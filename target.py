@@ -20,6 +20,7 @@ class TrackingTarget:
     def __init__(self, size):
         # Create an empty image
         self.img = numpy.ones([size,size], dtype=numpy.uint8)*255
+        cv2.randn(self.img, 128, 128)
         
         # Draw the target
         cc = size/2

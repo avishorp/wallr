@@ -2,12 +2,14 @@ import cv2
 from target import TrackingTarget
 import numpy
 
-TARGET_SIZE = 25
-VIDEO_SIZE = (640, 480)
+USE_HD = True
+TARGET_SIZE = 40 if USE_HD else 25
+VIDEO_SIZE = (1270, 720) if USE_HD els (640, 480)
 VIDEO_SOURCE = 0
 TRACK_WINDOW = (100, 100)
 LOCK_RETENTION = 20
-LOCK_THRESHOLD = 0
+LOCK_THRESHOLD = 0.05
+LOCK_SWITCH_STDDEV = 0.2
 
 # Tracking states
 TRK_STATE_ACQUIRE = 0
@@ -16,7 +18,7 @@ TRK_STATE_LOCKED = 1
 class Tracker(object):
     def __init__(self, targetCls):
         # Create a target image
-        self.target = targetCls(25).getImage()
+        self.target = targetCls(TARGET_SIZE).getImage()
 
         # Reset the state
         self.reset = self.switchToAcquire
@@ -32,10 +34,12 @@ class Tracker(object):
     def switchToAcquire(self):
         self.state = TRK_STATE_ACQUIRE
         self.lastDetections = []
+        self.onAcquire()
         
-    def switchToLocked(self, win):
+    def switchToLocked(self, point):
         self.state = TRK_STATE_LOCKED
-        self.window = win
+        self.window = None
+        self.onLock()
 
     def run(self):
         while self.running:
@@ -45,6 +49,7 @@ class Tracker(object):
             if ret:
                 # Convert the frame to grayscale
                 imggray = cv2.cvtColor(img, cv2.cv.CV_RGB2GRAY)
+                imggray = cv2.equalizeHist(imggray)
                 self.onFrame(imggray)
 
     def stop(self):
@@ -56,12 +61,15 @@ class Tracker(object):
             # Target aquisition state
             
             # Try to find the target across the whole image
-            matches = cv2.matchTemplate(img, self.target, cv2.TM_CCOEFF)
+            matches = cv2.matchTemplate(img, self.target, cv2.TM_CCORR_NORMED)
+            self.m = matches
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(matches)
-            
+            sel_val = min_val
+            sel_loc = min_loc
+            print sel_val
             # Make sure the detection is not too weak
-            if max_val > LOCK_THRESHOLD:
-                self.lastDetections.append(max_loc)
+            if sel_val > LOCK_THRESHOLD:
+                self.lastDetections.append(sel_loc)
 
                 # In order to declare lock, we must have
                 # LOCK_RETENTION samples in the buffer
@@ -73,14 +81,24 @@ class Tracker(object):
                     # to locked state is that the standard deviation of the
                     # detection center is lower than a predefined threshold
                     c = self.stddev(self.lastDetections)
-                    print c
+                    
+                    if c < LOCK_SWITCH_STDDEV:
+                        # There are enough "good" samples, the standard deviation
+                        # is small enough - switch to locked state
+
+                        # The detection point is the average of all the detection
+                        # points in the last detections
+                        dp = map(numpy.average, zip(*self.lastDetections))
+                        self.switchToLocked(dp)
         
-        self.targetPoint = max_loc
-
-        self.onCoordinates(img, max_loc[0], max_loc[1])
-
     def onCoordinates(self, img, x, y):
         pass
+
+    def onLock(self):
+        print "Switching to LOCK"
+        
+    def onAcquire(self):
+        print "Switching to ACKQUIRE"
     
     def stddev(self, points):
         # Is it mathematically correct?
@@ -101,6 +119,7 @@ if __name__=='__main__':
             super(DebugTracker, self).onFrame(img)
             
             imgdisp = cv2.cvtColor(img, cv2.cv.CV_GRAY2RGB)
+            #imgdisp = cv2.cvtColor(self.m, cv2.cv.CV_GRAY2RGB)
 
             if self.state == TRK_STATE_ACQUIRE:
                 statetxt = "ACK"
@@ -114,6 +133,7 @@ if __name__=='__main__':
                         fontFace=cv2.FONT_HERSHEY_PLAIN, 
                         fontScale=3, 
                         color=[255, 255, 0])
+            cv2.rectangle(imgdisp, (0,0), (TARGET_SIZE,TARGET_SIZE), color=[255,0,0])
             cv2.imshow('tracker', imgdisp)
             self.nFrames += 1
             
