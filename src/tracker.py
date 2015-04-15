@@ -2,9 +2,9 @@ import cv2
 from target import TrackingTarget
 import numpy
 
-USE_HD = True
+USE_HD = False
 TARGET_SIZE = 40 if USE_HD else 25
-VIDEO_SIZE = (1270, 720) if USE_HD els (640, 480)
+VIDEO_SIZE = (1270, 720) if USE_HD else (640, 480)
 VIDEO_SOURCE = 0
 TRACK_WINDOW = (100, 100)
 LOCK_RETENTION = 20
