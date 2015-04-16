@@ -2,7 +2,7 @@ import cv2
 from target import TrackingTarget
 import numpy
 
-USE_HD = False
+USE_HD = True
 TARGET_SIZE = 40 if USE_HD else 25
 VIDEO_SIZE = (1270, 720) if USE_HD else (640, 480)
 VIDEO_SOURCE = 0
@@ -48,8 +48,7 @@ class Tracker(object):
 
             if ret:
                 # Convert the frame to grayscale
-                imggray = cv2.cvtColor(img, cv2.cv.CV_RGB2GRAY)
-                imggray = cv2.equalizeHist(imggray)
+                imggray = cv2.equalizeHist(cv2.cvtColor(img, cv2.cv.CV_RGB2GRAY))
                 self.onFrame(imggray)
 
     def stop(self):
@@ -64,8 +63,8 @@ class Tracker(object):
             matches = cv2.matchTemplate(img, self.target, cv2.TM_CCORR_NORMED)
             self.m = matches
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(matches)
-            sel_val = min_val
-            sel_loc = min_loc
+            sel_val = max_val
+            sel_loc = max_loc
             print sel_val
             # Make sure the detection is not too weak
             if sel_val > LOCK_THRESHOLD:
@@ -95,68 +94,14 @@ class Tracker(object):
         pass
 
     def onLock(self):
-        print "Switching to LOCK"
+        pass
         
     def onAcquire(self):
-        print "Switching to ACKQUIRE"
+        pass
     
     def stddev(self, points):
         # Is it mathematically correct?
         v = map(numpy.std, zip(*points))
         return numpy.sqrt(v[0]*v[0] + v[1]*v[1] )
 
-##################################
-
-if __name__=='__main__':
-    class DebugTracker(Tracker):
-        def __init__(self, targetCls):
-            super(DebugTracker, self).__init__(targetCls)
-            self.t = cv2.getTickCount()
-            self.sec = cv2.getTickFrequency()
-            self.nFrames = 0
-
-        def onFrame(self, img):
-            super(DebugTracker, self).onFrame(img)
-            
-            imgdisp = cv2.cvtColor(img, cv2.cv.CV_GRAY2RGB)
-            #imgdisp = cv2.cvtColor(self.m, cv2.cv.CV_GRAY2RGB)
-
-            if self.state == TRK_STATE_ACQUIRE:
-                statetxt = "ACK"
-                
-                for d in self.lastDetections:
-                    self.crosshair(imgdisp, d, color=[0,255,0])
-            else:
-                statetxt = "LOCK"
-
-            cv2.putText(imgdisp, text=statetxt, org=(8,50), 
-                        fontFace=cv2.FONT_HERSHEY_PLAIN, 
-                        fontScale=3, 
-                        color=[255, 255, 0])
-            cv2.rectangle(imgdisp, (0,0), (TARGET_SIZE,TARGET_SIZE), color=[255,0,0])
-            cv2.imshow('tracker', imgdisp)
-            self.nFrames += 1
-            
-            if (cv2.getTickCount() - self.t) > self.sec:
-                print "FPS=%d" % self.nFrames
-                self.nFrames = 0
-                self.t = cv2.getTickCount()
-
-            ch = 0xFF & cv2.waitKey(1)
-            
-            if (ch == 'q'):
-                self.stop()
-
-        def onCoordinates(self, img, x, y):
-            #cv2.circle(img, (x,y), 10, color=[255, 0, 0], thickness=2)
-            pass
-        
-        def crosshair(self, img, center, color):
-            x = center[0]
-            y = center[1]
-            cv2.line(img, (x-5, y), (x+5,y), color = color, thickness=1)
-            cv2.line(img, (x, y-5), (x,y+5), color = color, thickness=1)
-
-    trk = DebugTracker(TrackingTarget)
-    trk.run()
 
