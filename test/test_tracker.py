@@ -18,10 +18,10 @@ class DebugTracker(tracker.Tracker):
         self.input_file = input_file
         self.output_file = output_file
 
-    def onFrame(self, img):
-        super(DebugTracker, self).onFrame(img)
+    def onFrame(self, nFrame, iimg, pimg, sel_loc, sel_val):
+        super(DebugTracker, self).onFrame(nFrame, iimg, pimg, sel_loc, sel_val)
             
-        imgdisp = cv2.cvtColor(img, cv2.cv.CV_GRAY2RGB)
+        imgdisp = cv2.cvtColor(pimg, cv2.cv.CV_GRAY2RGB)
         #imgdisp = cv2.cvtColor(self.m, cv2.cv.CV_GRAY2RGB)
 
         if self.state == tracker.TRK_STATE_ACQUIRE:
@@ -94,4 +94,7 @@ for o, a in opts:
 
 
 trk = DebugTracker(target.TrackingTarget, show_image, input_file, output_file)
-trk.run()
+trk.start()
+
+while(True):
+    time.sleep(1)
