@@ -16,16 +16,13 @@ TRK_STATE_ACQUIRE = 0
 TRK_STATE_LOCKED = 1
 
 class VideoCaptureThread(threading.Thread):
-    def __init__(self, videoSource):
+    def __init__(self, videoSource, destQueue):
         super(VideoCaptureThread, self).__init__()
         self.source = videoSource
-        self.queue = Queue.Queue(1)
+        self.queue = destQueue
         self.running = False
         self.nFrame = 0
         
-    def getEndpointQueue(self):
-        return self.queue
-
     def run(self):
         self.running = True
         print "VideoCaptureThread running"
@@ -43,14 +40,11 @@ class VideoCaptureThread(threading.Thread):
         self.join()
 
 class PreProcessThread(threading.Thread):
-    def __init__(self, sourceQueue):
+    def __init__(self, sourceQueue, destQueue):
         super(PreProcessThread, self).__init__()
         self.sourceQ = sourceQueue
-        self.destQ = Queue.Queue(2)
+        self.destQ = destQueue
 
-    def getEndpointQueue(self):
-        return self.destQ
-    
     def run(self):
         self.running = True
         print "PreProcessThread running"
@@ -66,15 +60,12 @@ class PreProcessThread(threading.Thread):
             self.destQ.put(result)
 
 class MatchTemplateThread(threading.Thread):
-    def __init__(self, sourceQueue, template):
+    def __init__(self, sourceQueue, destQueue, template):
         super(MatchTemplateThread, self).__init__()
         self.sourceQ = sourceQueue
-        self.destQ = Queue.Queue(2)
+        self.destQ = destQueue
         self.template = template
 
-    def getEndpointQueue(self):
-        return self.destQ
-    
     def run(self):
         self.running = True
         print "MatchTemplateThread running"
@@ -104,13 +95,19 @@ class Tracker(threading.Thread):
         self.reset = self.switchToAcquire
         self.reset()
 
-        # Create the worker threads
-        self.videoSourceThread = VideoCaptureThread(self.getVideoSource())
-        self.preProcThread = PreProcessThread(
-            self.videoSourceThread.getEndpointQueue())
+        # Create the worker threads and queues
+        self.rawVideoQueue = Queue.Queue(1)
+        self.videoSourceThread = VideoCaptureThread(self.getVideoSource(),
+                                                    self.rawVideoQueue)
+        
+        self.preProcQueue = Queue.Queue(1)
+        self.preProcThread = PreProcessThread(self.rawVideoQueue,
+                                              self.preProcQueue)
+
+        self.matchQueue = Queue.Queue(1)
         self.matchTemplateThread = MatchTemplateThread(
-            self.preProcThread.getEndpointQueue(), self.target)
-        self.matchQueue = self.matchTemplateThread.getEndpointQueue()
+            self.preProcQueue, self.matchQueue, self.target)
+
 
     def start(self):
         # Start all the working threads
