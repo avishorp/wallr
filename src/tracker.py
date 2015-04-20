@@ -10,6 +10,7 @@ TRACK_WINDOW = (100, 100)
 LOCK_RETENTION = 20
 LOCK_THRESHOLD = 0.05
 LOCK_SWITCH_STDDEV = 0.2
+NUM_MATCHERS = 4
 
 # Tracking states
 TRK_STATE_ACQUIRE = 0
@@ -83,6 +84,14 @@ class MatchTemplateThread(threading.Thread):
             result = (nFrame, iimg, pimg, sel_loc, sel_val)
             self.destQ.put(result)
 
+class QueueDistributor(object):
+    def __init__(self, queueList):
+        self.n = 0
+        self.queues = queueList
+        
+    def put(self, *args):
+        self.queues[self.n].put(*args)
+        self.n = (self.n + 1) % len(self.queues)
 
 class Tracker(threading.Thread):
     def __init__(self, targetCls):
@@ -100,18 +109,20 @@ class Tracker(threading.Thread):
         self.videoSourceThread = VideoCaptureThread(self.getVideoSource(),
                                                     self.rawVideoQueue)
         
-        self.preProcQueue = Queue.Queue(1)
+        self.preProcQueues = [ Queue.Queue(1) for k in range(0, NUM_MATCHERS) ]
         self.preProcThread = PreProcessThread(self.rawVideoQueue,
-                                              self.preProcQueue)
+                                              QueueDistributor(self.preProcQueues))
 
         self.matchQueue = Queue.Queue(1)
-        self.matchTemplateThread = MatchTemplateThread(
-            self.preProcQueue, self.matchQueue, self.target)
+        self.matchTemplateThreads = [ MatchTemplateThread(
+            self.preProcQueues[k], self.matchQueue, self.target)
+                                      for k in range(0, NUM_MATCHERS) ]
 
 
     def start(self):
         # Start all the working threads
-        self.matchTemplateThread.start()
+        for tr in self.matchTemplateThreads:
+            tr.start()
         self.preProcThread.start()
         self.videoSourceThread.start()
         super(Tracker, self).start()
