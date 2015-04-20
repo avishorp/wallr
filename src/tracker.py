@@ -32,13 +32,18 @@ class VideoCaptureThread(threading.Thread):
             ret, img = self.source.read()
             
             if ret:
-                # Push it onto the queue
-                self.queue.put((self.nFrame, img))
-                self.nFrame += 1
+                try:
+                    # Push it onto the queue
+                    self.queue.put((self.nFrame, img), True, 1)
+                    self.nFrame += 1
+
+                except Queue.Full:
+                    # Should not be thrown normally, used to handle
+                    # thread termination
+                    pass
                 
     def terminate(self):
         self.running = False
-        self.join()
 
 class PreProcessThread(threading.Thread):
     def __init__(self, sourceQueue, destQueue):
@@ -50,15 +55,24 @@ class PreProcessThread(threading.Thread):
         self.running = True
         print "PreProcessThread running"
         while self.running:
-            # Get an image from the source queue
-            nFrame, iimg = self.sourceQ.get()
+            try:
+                # Get an image from the source queue
+                nFrame, iimg = self.sourceQ.get(True, 1)
             
-            # Do the pre processing
-            pimg = cv2.equalizeHist(cv2.cvtColor(iimg, cv2.cv.CV_RGB2GRAY))
+                # Do the pre processing
+                pimg = cv2.equalizeHist(cv2.cvtColor(iimg, cv2.cv.CV_RGB2GRAY))
             
-            # Push the result on the destination queue
-            result = (nFrame, iimg, pimg)
-            self.destQ.put(result)
+                # Push the result on the destination queue
+                result = (nFrame, iimg, pimg)
+                self.destQ.put(result, True, 1)
+            
+            except (Queue.Full, Queue.Empty):
+                # Should not be thrown normally, used to handle
+                # thread termination
+                pass
+
+    def terminate(self):
+        self.running = False
 
 class MatchTemplateThread(threading.Thread):
     def __init__(self, sourceQueue, destQueue, template):
@@ -71,20 +85,34 @@ class MatchTemplateThread(threading.Thread):
         self.running = True
         print "MatchTemplateThread running"
         while self.running:
-            # Get an image from the source queue
-            nFrame, iimg, pimg = self.sourceQ.get()
+            try:
+                # Get an image from the source queue
+                nFrame, iimg, pimg = self.sourceQ.get(True, 1)
             
-            # Run template matching
-            matches = cv2.matchTemplate(pimg, self.template, cv2.TM_CCORR_NORMED)
-            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(matches)
-            sel_val = max_val
-            sel_loc = max_loc
+                # Run template matching
+                matches = cv2.matchTemplate(pimg, self.template, cv2.TM_CCORR_NORMED)
+                min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(matches)
+                sel_val = max_val
+                sel_loc = max_loc
 
-            # Push the result on the destination queue
-            result = (nFrame, iimg, pimg, sel_loc, sel_val)
-            self.destQ.put(result)
+                # Push the result on the destination queue
+                result = (nFrame, iimg, pimg, sel_loc, sel_val)
+                self.destQ.put(result, True, 1)
+
+            except (Queue.Full, Queue.Empty):
+                # Should not be thrown normally, used to handle
+                # thread termination
+                pass
+
+    def terminate(self):
+        self.running = False
+
 
 class QueueDistributor(object):
+    # A QueueDistributor class is an adaptor between one producer
+    # and multiple queues. It reflects the Queue's put interface,
+    # distributing the actual put between multiple queues, in round
+    # robin fashion
     def __init__(self, queueList):
         self.n = 0
         self.queues = queueList
@@ -144,16 +172,40 @@ class Tracker(threading.Thread):
         self.window = None
         self.onLock()
 
+    def terminate(self):
+        self.running = False
+        
+        all_threads = [
+            (self.videoSourceThread, "SourceVideoThread"),
+            (self.preProcThread, "PreProcThread") ]
+        for tr in range(len(self.matchTemplateThreads)):
+            all_threads.append((self.matchTemplateThreads[tr],
+                                "MatchTemplateThread %d" % tr))
+            
+        for tr in all_threads:
+            tr[0].terminate()
+            
+        for tr in all_threads:
+            tr[0].join()
+            print "%s terminated" % tr[1]
+
+        self.join()
+        print "Tracker terminated"
+
     def run(self):
         self.running = True
         print "Tracker thread running"
         while self.running:
-            # Wait on the match queue
-            nFrame, iimg, pimg, sel_loc, sel_val = self.matchQueue.get()
+            try:
+                # Wait on the match queue
+                nFrame, iimg, pimg, sel_loc, sel_val = self.matchQueue.get()
             
-            # New match result
-            print "%d X=%d Y=%d %f" % (nFrame, sel_loc[0], sel_loc[1], sel_val) 
-            self.onFrame(nFrame, iimg, pimg, sel_loc, sel_val)
+                # New match result
+                print "%d X=%d Y=%d %f" % (nFrame, sel_loc[0], sel_loc[1], sel_val) 
+                self.onFrame(nFrame, iimg, pimg, sel_loc, sel_val)
+
+            except Queue.Empty:
+                pass
 
     def onFrame(self, nFrame, iimg, pimg, sel_loc, sel_val):
         "Default callback for frame display"

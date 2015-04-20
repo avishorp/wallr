@@ -96,5 +96,5 @@ for o, a in opts:
 trk = DebugTracker(target.TrackingTarget, show_image, input_file, output_file)
 trk.start()
 
-while(True):
-    time.sleep(1)
+time.sleep(10)
+trk.terminate()
