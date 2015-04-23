@@ -6,7 +6,7 @@ import sys
 sys.path.append('../src')
 
 import cv2, target, tracker
-import getopt, time
+import getopt, time, signal
 
 class DebugTracker(tracker.Tracker):
     def __init__(self, targetCls, show_image, input_file, output_file):
@@ -63,6 +63,10 @@ class DebugTracker(tracker.Tracker):
         print "Switching to ACQUIRE"
         self.acqTime = time.time()
 
+    def stop(self):
+        print "Stop signal received, terminating tracker"
+        self.terminate()
+
         
     def crosshair(self, img, center, color):
         x = center[0]
@@ -94,7 +98,12 @@ for o, a in opts:
 
 
 trk = DebugTracker(target.TrackingTarget, show_image, input_file, output_file)
-trk.start()
+signal.signal(signal.SIGINT, lambda sig,frm: trk.stop())
 
-time.sleep(10)
-trk.terminate()
+trk.start()
+while not trk.running:
+    pass
+
+while trk.running:
+    time.sleep(1)
+
