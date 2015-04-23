@@ -1,16 +1,18 @@
 import cv2
 from target import TrackingTarget
 import numpy, threading, Queue
+import trkutil
 
 USE_HD = True
 TARGET_SIZE = 40 if USE_HD else 25
 VIDEO_SIZE = (1270, 720) if USE_HD else (640, 480)
 VIDEO_SOURCE = 0
-TRACK_WINDOW = (100, 100)
+TRACK_WINDOW = (50, 50)
 LOCK_RETENTION = 20
 LOCK_THRESHOLD = 0.05
 LOCK_SWITCH_STDDEV = 0.2
 NUM_MATCHERS = 4
+DETECTION_MARGIN = 0.1
 
 # Tracking states
 TRK_STATE_ACQUIRE = 0
@@ -80,6 +82,10 @@ class MatchTemplateThread(threading.Thread):
         self.sourceQ = sourceQueue
         self.destQ = destQueue
         self.template = template
+        self.roi = None
+        
+    def setMatchingROI(self, roi):
+        self.roi = roi
 
     def run(self):
         self.running = True
@@ -88,6 +94,9 @@ class MatchTemplateThread(threading.Thread):
             try:
                 # Get an image from the source queue
                 nFrame, iimg, pimg = self.sourceQ.get(True, 1)
+                
+                roi = pimg[self.roi.xleft:self.roi.xright,
+                           self.roi.ytop,self.roi.ybottom] if self.roi is not None else pimg
             
                 # Run template matching
                 matches = cv2.matchTemplate(pimg, self.template, cv2.TM_CCORR_NORMED)
@@ -129,6 +138,7 @@ class Tracker(threading.Thread):
         self.target = targetCls(TARGET_SIZE).getImage()
 
         # Reset the state
+        self.currentFrame = 0
         self.reset = self.switchToAcquire
         self.reset()
 
@@ -167,10 +177,35 @@ class Tracker(threading.Thread):
         self.lastDetections = []
         self.onAcquire()
         
-    def switchToLocked(self, point):
+    def switchToLocked(self, point, value):
         self.state = TRK_STATE_LOCKED
-        self.window = None
+
+        self.detectionPoint = point
+        self.detectionThreshold = value*(1-DETECTION_MARGIN)
+        self.window = self.calcWindow(point, TRACK_WINDOW, VIDEO_SIZE)
         self.onLock()
+        
+    def calcWindow(self, point, size, screen):
+        #     | size_x |
+        #     +----------------+--
+        #     |                | ^
+        #     |                | size_y
+        #     |                | v
+        #     |        O       |--
+        #     |                |
+        #     |                |
+        #     |                |
+        #     +----------------+
+        win = trkutil.Rectangle(
+            self.clip(point[0]-size[0], screen[0]), # xleft
+            self.clip(point[0]+size[0], screen[0]), # xright
+            self.clip(point[1]-size[1], screen[1]), # ytop
+            self.clip(point[1]+size[1], screen[1])) # ybottom
+
+        return win
+            
+    def clip(self, value, maxvalue):
+        return max(0, int(min(maxvalue, value)))
 
     def terminate(self):
         self.running = False
@@ -209,12 +244,17 @@ class Tracker(threading.Thread):
 
     def onFrame(self, nFrame, iimg, pimg, sel_loc, sel_val):
         "Default callback for frame display"
+        
+        # Update the frame counter
+        self.currentFrame = nFrame
+        
         if self.state == TRK_STATE_ACQUIRE:
             # Target aquisition state
+            #########################
 
             # Make sure the detection is not too weak
             if sel_val > LOCK_THRESHOLD:
-                self.lastDetections.append(sel_loc)
+                self.lastDetections.append((sel_loc, sel_val))
 
                 # In order to declare lock, we must have
                 # LOCK_RETENTION samples in the buffer
@@ -225,7 +265,7 @@ class Tracker(threading.Thread):
                     # The criterion for switching from ACQUIRE state
                     # to locked state is that the standard deviation of the
                     # detection center is lower than a predefined threshold
-                    c = self.stddev(self.lastDetections)
+                    c = self.stddev(zip(*self.lastDetections)[0])
                     
                     if c < LOCK_SWITCH_STDDEV:
                         # There are enough "good" samples, the standard deviation
@@ -233,8 +273,20 @@ class Tracker(threading.Thread):
 
                         # The detection point is the average of all the detection
                         # points in the last detections
-                        dp = map(numpy.average, zip(*self.lastDetections))
-                        self.switchToLocked(dp)
+                        p = zip(*self.lastDetections)[0]
+                        v = zip(*self.lastDetections)[1]
+                        point = map(lambda n: int(round(numpy.average(n))),
+                                    zip(*p))
+                        value = numpy.average(v)
+                        self.switchToLocked(point, value)
+
+        else:
+            # Locked state
+            ##############
+            pass
+
+        # Frame processing finished successfully
+        return True
         
     def onCoordinates(self, img, x, y):
         pass
@@ -249,5 +301,4 @@ class Tracker(threading.Thread):
         # Is it mathematically correct?
         v = map(numpy.std, zip(*points))
         return numpy.sqrt(v[0]*v[0] + v[1]*v[1] )
-
-
+    

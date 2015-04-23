@@ -28,9 +28,15 @@ class DebugTracker(tracker.Tracker):
             statetxt = "ACK"
                 
             for d in self.lastDetections:
-                self.crosshair(imgdisp, d, color=[0,255,0])
+                self.crosshair(imgdisp, d[0], color=[0,255,0])
         else:
             statetxt = "LOCK"
+            
+            # Draw the tracking window
+            cv2.rectangle(imgdisp, (self.window.xleft, self.window.ytop),
+                          (self.window.xright, self.window.ybottom), color=[0,0,255])
+
+
 
         cv2.putText(imgdisp, text=statetxt, org=(8,50), 
                     fontFace=cv2.FONT_HERSHEY_PLAIN, 
