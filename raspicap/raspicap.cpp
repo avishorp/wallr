@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-//#include <opencv2/core/core_c.h>
+#include <opencv2/core/core_c.h>
 //#include <opencv2/objdetect/objdetect.hpp>
 //#include <opencv2/highgui/highgui_c.h>
 //#include <opencv2/imgproc/imgproc.hpp>
@@ -19,8 +19,9 @@
 #include "interface/mmal/mmal.h"
 #include "interface/mmal/util/mmal_default_components.h"
 #include "interface/mmal/util/mmal_connection.h"
+#include "interface/mmal/util/mmal_util_params.h"
+#include "interface/mmal/util/mmal_util.h"
 
-//#include "vgfont.h"
 
 #define MMAL_CAMERA_PREVIEW_PORT 0
 #define MMAL_CAMERA_VIDEO_PORT 1
@@ -103,6 +104,28 @@ static void camera_video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T
       printf("  Frame = %d, Frame Post %d, Framerate = %.0f fps \n", frame_count, frame_post_count, fps);
     }
 #endif // CALC_FPS
+
+    // Copy the video frame to cvMat objects (one for each component)
+    mmal_buffer_header_mem_lock(buffer);
+
+    // Create component matrices
+    CvMat* y = cvCreateMat(userdata->height, userdata->width, CV_8UC1);
+    CvMat* u = cvCreateMat(userdata->height/2, userdata->width/2, CV_8UC1);
+    CvMat* v = cvCreateMat(userdata->height/2, userdata->width/2, CV_8UC1);
+
+    // Copy the data
+    unsigned char* pointer = (unsigned char *)(buffer -> data);
+    memcpy(y->data.ptr, pointer, userdata->height*userdata->width);
+    pointer = pointer + (userdata->height*userdata->width);
+    //    memcpy(u->data.ptr, pointer, userdata->height*userdata->width/4);
+    pointer = pointer + (userdata->height*userdata->width/4);
+    //    memcpy(v->data.ptr, pointer, userdata->height*userdata->width/4);
+
+    cvReleaseMat(&y);
+    cvReleaseMat(&u);
+    cvReleaseMat(&v);
+
+    mmal_buffer_header_mem_unlock(buffer);
 
 #if 0
     //if(1){
@@ -261,18 +284,19 @@ int setup_camera(PORT_USERDATA *userdata) {
     camera_still_port = camera->output[MMAL_CAMERA_CAPTURE_PORT];
 
     {
+
         MMAL_PARAMETER_CAMERA_CONFIG_T cam_config = {
-            { MMAL_PARAMETER_CAMERA_CONFIG, sizeof (cam_config)},
-            .max_stills_w = userdata->width,
-            .max_stills_h = userdata->height,
-            .stills_yuv422 = 0,
-            .one_shot_stills = 1,
-            .max_preview_video_w = userdata->width,
-            .max_preview_video_h = userdata->height,
-            .num_preview_video_frames = 3,
-            .stills_capture_circular_buffer_height = 0,
-            .fast_preview_resume = 0,
-            .use_stc_timestamp = MMAL_PARAM_TIMESTAMP_MODE_RESET_STC
+	  { MMAL_PARAMETER_CAMERA_CONFIG, sizeof (cam_config)},  // hdr
+	  userdata->width, // max_stills_w
+          userdata->height, // max_stills_h
+          0, // stills_yuv422
+          1, // one_shot_stills
+          userdata->width, // max_preview_video_w
+          userdata->height, // max_preview_video_h
+          3, // num_preview_video_frames
+          0, // stills_capture_circular_buffer_height
+          0, // fast_preview_resume
+          MMAL_PARAM_TIMESTAMP_MODE_RESET_STC // use_stc_timestamp
         };
         mmal_port_parameter_set(camera->control, &cam_config.hdr);
     }
@@ -455,35 +479,6 @@ int main(int argc, char** argv) {
 
     int c;
     opterr = 0;
-    while ((c = getopt (argc, argv, "r:w:h:f:s:")) != -1){
-      switch (c) {
-        case 'r': //rotation
-          userdata.rotation = atoi(optarg);
-          break;
-        case 'w':
-          userdata.width = atoi(optarg);
-          break;
-        case 'h':
-          userdata.height = atoi(optarg);
-          break;
-        case 'f':
-          userdata.fps = atoi(optarg);
-          break;
-
-        case '?':
-          if ((optopt == 's') || (optopt == 'r'))
-          //if (optopt == 's')
-            fprintf (stderr, "Option -%c requires an argument.\n", optopt);
-          else if (isprint (optopt))
-            fprintf (stderr, "Unknown option `-%c'.\n", optopt);
-          else
-            fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
-          return 1;
-        default:
-          return 1;
-      }
-    }
-
 
 
     fprintf(stderr, "VIDEO_WIDTH : %i\n", userdata.width );

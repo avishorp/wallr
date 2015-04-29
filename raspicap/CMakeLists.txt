@@ -9,7 +9,7 @@ include_directories(/opt/vc/include/interface/vmcs_host/linux)
 
 link_directories(/opt/vc/lib)
 
-add_executable(raspicap raspicap.c)
+add_executable(raspicap raspicap.cpp)
 
 find_package( OpenCV REQUIRED )
 
