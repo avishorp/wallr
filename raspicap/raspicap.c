@@ -34,28 +34,6 @@
 #define DEFAULT_VIDEO_HEIGHT 720
 
 
-//FPS: OpenCV = 15.05, Video = 30.51, ~60% CPU
-/*
-#define VIDEO_FPS 30 
-#define VIDEO_WIDTH 1280
-#define VIDEO_HEIGHT 720
-*/
-int still_interval = 60;
-const char* STILL_TMPFN = "/tmp/opencv_modect.jpg";
-
-/*
-//FPS: OpenCV = 14.90, Video = 30.02, ~75% CPU
-#define VIDEO_FPS 30 
-#define VIDEO_WIDTH 1920
-#define VIDEO_HEIGHT 1080
-*/
-/*
-//FPS: OpenCV = 21.57, Video = 91.12, CPU ~90%
-#define VIDEO_FPS 90
-#define VIDEO_WIDTH 640
-#define VIDEO_HEIGHT 480
-*/
-
 typedef struct {
     int width;
     int height;
@@ -72,18 +50,11 @@ typedef struct {
     MMAL_PORT_T *encoder_output_port;
     MMAL_POOL_T *encoder_output_pool;
 
-    int opencv_width;
-    int opencv_height;
     VCOS_SEMAPHORE_T complete_semaphore;
     
-    signed int motion;
-    int grabframe;
-
-    float video_fps;
-    float opencv_fps;
-    
-    char *stillfn; //place to write stills to
-    int rotation;    
+    float video_fps;  
+    int rotation;   
+ 
 } PORT_USERDATA;
 
 int fill_port_buffer(MMAL_PORT_T *port, MMAL_POOL_T *pool) {
@@ -105,6 +76,7 @@ int fill_port_buffer(MMAL_PORT_T *port, MMAL_POOL_T *pool) {
 static void camera_video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer) {
     PORT_USERDATA *userdata = (PORT_USERDATA *) port->userdata;
 
+#ifdef CALC_FPS
     static struct timespec t1;
     struct timespec t2;
 
@@ -116,8 +88,7 @@ static void camera_video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T
     }
     frame_count++;
 
-    //if(1){
-    if( (CALC_FPS) && (frame_count % (userdata->fps*2) == 0) ){ //every 2 seconds
+    if( (frame_count % (userdata->fps*2)) == 0) { //every 2 seconds
       // print framerate every n frame
       clock_gettime(CLOCK_MONOTONIC, &t2);
       float d = (t2.tv_sec + t2.tv_nsec / 1000000000.0) - (t1.tv_sec + t1.tv_nsec / 1000000000.0);
@@ -131,6 +102,7 @@ static void camera_video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T
       userdata->video_fps = fps;
       printf("  Frame = %d, Frame Post %d, Framerate = %.0f fps \n", frame_count, frame_post_count, fps);
     }
+#endif // CALC_FPS
 
 #if 0
     //if(1){
@@ -152,7 +124,7 @@ static void camera_video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T
     }
 
     //if(1){
-    if( (userdata->stillfn) && (frame_count % (userdata->fps * still_interval) == 0) ){ //every 60 seconds
+    if( 0 && (frame_count % (userdata->fps * still_interval) == 0) ){ //every 60 seconds
       mmal_buffer_header_mem_lock(buffer);
 
       fprintf(stderr, "WRITING STILL (%d)\n", frame_count);
@@ -212,7 +184,7 @@ static void camera_video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T
       
       mmal_buffer_header_mem_unlock(buffer);
 
-      rename(STILL_TMPFN, userdata->stillfn);
+
 #endif
       if (vcos_semaphore_trywait(&(userdata->complete_semaphore)) != VCOS_SUCCESS) {
         vcos_semaphore_post(&(userdata->complete_semaphore));
@@ -245,26 +217,7 @@ static void encoder_input_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_
 }
 
 static void encoder_output_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer) {
-  //    MMAL_BUFFER_HEADER_T *new_buffer;
-  //    MMAL_POOL_T *pool = userdata->camera_encoder_output_pool;
-
-
     mmal_buffer_header_release(buffer);
-    /*    
-    if (port->is_enabled) {
-        MMAL_STATUS_T status;
-
-        new_buffer = mmal_queue_get(pool->queue);
-
-        if (new_buffer) {
-            status = mmal_port_send_buffer(port, new_buffer);
-        }
-
-        if (!new_buffer || status != MMAL_SUCCESS) {
-            fprintf(stderr, "[%s]Unable to return a buffer to the video port\n", __func__);
-        }
-    }
-    */
 }
 
 /**
@@ -516,9 +469,7 @@ int main(int argc, char** argv) {
         case 'f':
           userdata.fps = atoi(optarg);
           break;
-        case 's':
-          userdata.stillfn = optarg;
-          break;
+
         case '?':
           if ((optopt == 's') || (optopt == 'r'))
           //if (optopt == 's')
@@ -533,14 +484,7 @@ int main(int argc, char** argv) {
       }
     }
 
-    if(userdata.stillfn){
-      fprintf(stderr, "Writing still images to %s\n", userdata.stillfn);
-    }
 
-    userdata.opencv_width = 320;//userdata.width/4;
-    userdata.opencv_height = 240;//userdata.height/4;
-    userdata.motion = 0;
-    userdata.grabframe = 1;
 
     fprintf(stderr, "VIDEO_WIDTH : %i\n", userdata.width );
     fprintf(stderr, "VIDEO_HEIGHT: %i\n", userdata.height );
@@ -588,24 +532,10 @@ int main(int argc, char** argv) {
 
       if(1){
         if (vcos_semaphore_wait(&(userdata.complete_semaphore)) == VCOS_SUCCESS) {
-          userdata.grabframe = 0;
 
-          opencv_frames++;
-          //if (1) {
-          if( (CALC_FPS) && (opencv_frames % (userdata.fps*2) == 0) ){
-            clock_gettime(CLOCK_MONOTONIC, &t2);
-            float d = (t2.tv_sec + t2.tv_nsec / 1000000000.0) - (t1.tv_sec + t1.tv_nsec / 1000000000.0);
-            if (d > 0) {
-              userdata.opencv_fps = opencv_frames / d;
-            } else {
-              userdata.opencv_fps = opencv_frames;
-            }
+	  //printf("frame\n");
+	}
 
-            fprintf(stderr, "FPS: OpenCV = %.2f, Video = %.2f\n", userdata.opencv_fps, userdata.video_fps);
-          }
-        
-          userdata.grabframe = 1;
-        }
       }
     }
 
