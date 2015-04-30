@@ -105,7 +105,7 @@ static void camera_video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T
 
     // Copy the video frame to cvMat objects (one for each component)
     mmal_buffer_header_mem_lock(buffer);
-
+    /*
     // Create component matrices
     unsigned char* pointer = (unsigned char *)(buffer -> data);
     Mat y(userdata->height, userdata->width, CV_8UC1, pointer);
@@ -113,7 +113,7 @@ static void camera_video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T
     Mat u(userdata->height/2, userdata->width/2, CV_8UC1, pointer);
     pointer = pointer + (userdata->height*userdata->width/4);
     Mat v(userdata->height/2, userdata->width/2, CV_8UC1, pointer);
-
+    */
 
     mmal_buffer_header_mem_unlock(buffer);
 
