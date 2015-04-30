@@ -7,12 +7,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#include <opencv2/core/core_c.h>
-//#include <opencv2/objdetect/objdetect.hpp>
-//#include <opencv2/highgui/highgui_c.h>
-//#include <opencv2/imgproc/imgproc.hpp>
-//#include <opencv2/video/video.hpp>
-
+#include <opencv2/core/core.hpp>
 #include "bcm_host.h"
 #include "interface/vcos/vcos.h"
 
@@ -22,6 +17,8 @@
 #include "interface/mmal/util/mmal_util_params.h"
 #include "interface/mmal/util/mmal_util.h"
 
+#include <python2.7/Python.h>
+#include <numpy/ndarrayobject.h>
 
 #define MMAL_CAMERA_PREVIEW_PORT 0
 #define MMAL_CAMERA_VIDEO_PORT 1
@@ -34,6 +31,7 @@
 #define DEFAULT_VIDEO_WIDTH 1280
 #define DEFAULT_VIDEO_HEIGHT 720
 
+using namespace cv;
 
 typedef struct {
     int width;
@@ -109,21 +107,13 @@ static void camera_video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T
     mmal_buffer_header_mem_lock(buffer);
 
     // Create component matrices
-    CvMat* y = cvCreateMat(userdata->height, userdata->width, CV_8UC1);
-    CvMat* u = cvCreateMat(userdata->height/2, userdata->width/2, CV_8UC1);
-    CvMat* v = cvCreateMat(userdata->height/2, userdata->width/2, CV_8UC1);
-
-    // Copy the data
     unsigned char* pointer = (unsigned char *)(buffer -> data);
-    memcpy(y->data.ptr, pointer, userdata->height*userdata->width);
+    Mat y(userdata->height, userdata->width, CV_8UC1, pointer);
     pointer = pointer + (userdata->height*userdata->width);
-    //    memcpy(u->data.ptr, pointer, userdata->height*userdata->width/4);
+    Mat u(userdata->height/2, userdata->width/2, CV_8UC1, pointer);
     pointer = pointer + (userdata->height*userdata->width/4);
-    //    memcpy(v->data.ptr, pointer, userdata->height*userdata->width/4);
+    Mat v(userdata->height/2, userdata->width/2, CV_8UC1, pointer);
 
-    cvReleaseMat(&y);
-    cvReleaseMat(&u);
-    cvReleaseMat(&v);
 
     mmal_buffer_header_mem_unlock(buffer);
 
@@ -537,3 +527,55 @@ int main(int argc, char** argv) {
     return 0;
 }
 
+
+
+static PyObject * PyInit(PyObject *self, PyObject *args)
+{
+  int number;
+  int sts;
+
+  if (!PyArg_ParseTuple(args, "i", &number))
+    return NULL;
+
+  //  if (sts < 0) {
+  //  PyErr_SetString(SpamError, "System command failed");
+  //  return NULL;
+  //}
+
+  npy_intp dims[] = {5, 8};
+  char* dat;
+  dat = (char*)malloc(5*8);
+  for(int kk=0; kk < dims[0]*dims[1]; kk++) dat[kk] = kk;
+
+
+  int x = NPY_UINT8;
+  //  PyObject* pp = PyArray_ZEROS(2, &dims, NPY_UINT8, 0);
+
+  //PyObject* pp = PyArray_New(&PyArray_Type, 2, dims, NPY_UINT8, NULL, NULL, 0, NULL, NULL);
+  PyObject* pp = PyArray_SimpleNewFromData(2, dims, NPY_UINT8, dat);
+
+  return pp;
+}
+
+static PyMethodDef RaspicapMethods[] = {
+    {"init",  PyInit, METH_VARARGS,
+     "Initialize raspicap"},
+    {NULL, NULL, 0, NULL}        /* Sentinel */
+};
+
+static PyObject* RaspicapError;
+
+PyMODINIT_FUNC initraspicap()
+{
+  import_array();
+
+  PyObject *m;
+
+  m = Py_InitModule("raspicap", RaspicapMethods);
+  if (m == NULL)
+    return;
+
+  RaspicapError = PyErr_NewException("raspicap.error", NULL, NULL);
+  Py_INCREF(RaspicapError);
+  PyModule_AddObject(m, "error", RaspicapError);
+}
