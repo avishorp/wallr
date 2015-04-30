@@ -24,7 +24,7 @@
 #define MMAL_CAMERA_VIDEO_PORT 1
 #define MMAL_CAMERA_CAPTURE_PORT 2
 
-#define CALC_FPS 1
+#define CALC_FPS 0
 
 
 #define DEFAULT_VIDEO_FPS 30 
@@ -52,9 +52,15 @@ typedef struct {
     VCOS_SEMAPHORE_T complete_semaphore;
     
     float video_fps;  
-    int rotation;   
- 
+    int rotation;
+
+  PyObject* next_frame;
+  bool next_frame_available;
+  unsigned int frames_received;
+  unsigned int frames_skipped;
 } PORT_USERDATA;
+
+static PORT_USERDATA* g_userdata = NULL;
 
 int fill_port_buffer(MMAL_PORT_T *port, MMAL_POOL_T *pool) {
     int q;
@@ -99,7 +105,6 @@ static void camera_video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T
           fps = frame_count;
       }
       userdata->video_fps = fps;
-      printf("  Frame = %d, Frame Post %d, Framerate = %.0f fps \n", frame_count, frame_post_count, fps);
     }
 #endif // CALC_FPS
 
@@ -115,90 +120,25 @@ static void camera_video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T
     Mat v(userdata->height/2, userdata->width/2, CV_8UC1, pointer);
     */
 
+    userdata->frames_received++;
+    if (!userdata->next_frame_available) {
+      // Create a Python object holding the next frame
+      npy_intp dims[] = {userdata->height, userdata->width};
+      PyObject* pframe = PyArray_SimpleNew(2, dims, NPY_UINT8);
+
+      // Copy the data into the object
+      memcpy(PyArray_DATA(((PyArrayObject*)pframe)), (unsigned char*)(buffer->data),
+	     dims[0]*dims[1]);
+
+      // Set the frame available flag
+      userdata->next_frame = pframe;
+      userdata->next_frame_available = true;
+    }
+    else
+      userdata->frames_skipped++;
+
     mmal_buffer_header_mem_unlock(buffer);
 
-#if 0
-    //if(1){
-    if(userdata->grabframe){
-      mmal_buffer_header_mem_lock(buffer);
-      
-      //monkey with the imageData pointer, to avoid a memcpy
-      char* oldImageData = userdata->stub->imageData;
-      userdata->stub->imageData = buffer->data;
-      cvResize(userdata->stub, userdata->small_image, CV_INTER_LINEAR);
-      userdata->stub->imageData = oldImageData;
-      
-      mmal_buffer_header_mem_unlock(buffer);
-
-      if (vcos_semaphore_trywait(&(userdata->complete_semaphore)) != VCOS_SUCCESS) {
-        vcos_semaphore_post(&(userdata->complete_semaphore));
-        frame_post_count++;
-      }
-    }
-
-    //if(1){
-    if( 0 && (frame_count % (userdata->fps * still_interval) == 0) ){ //every 60 seconds
-      mmal_buffer_header_mem_lock(buffer);
-
-      fprintf(stderr, "WRITING STILL (%d)\n", frame_count);
-/*
-      //Just grab the Y and write it out ASAP      
-      //monkey with the imageData pointer, to avoid a memcpy
-      char* oldImageData = userdata->stub->imageData;
-      userdata->stub->imageData = buffer->data;
-
-      //grab a still for export to www
-      cvSaveImage("/home/pi/image.tmp.jpg", userdata->stub, 0);
-
-      userdata->stub->imageData = oldImageData;
-*/
-/**/
-      //TODO some of this can probably be collapsed down, but as we only do this once a minute I don't care so much....
-      //so here we're going to attempt a new method to get full YUV
-      unsigned char* pointer = (unsigned char *)(buffer -> data);
-      //get Y U V as CvMat()s
-      CvMat y = cvMat(userdata->height, userdata->width, CV_8UC1, pointer);
-      pointer = pointer + (userdata->height*userdata->width);
-      CvMat u = cvMat(userdata->height/2, userdata->width/2, CV_8UC1, pointer);
-      pointer = pointer + (userdata->height*userdata->width/4);
-      CvMat v = cvMat(userdata->height/2, userdata->width/2, CV_8UC1, pointer);
-      //resize U and V and convert Y U and V into IplImages
-      IplImage* uu = cvCreateImage(cvSize(userdata->width, userdata->height), IPL_DEPTH_8U, 1);
-      cvResize(&u, uu, CV_INTER_LINEAR);
-      IplImage* vv = cvCreateImage(cvSize(userdata->width, userdata->height), IPL_DEPTH_8U, 1);
-      cvResize(&v, vv, CV_INTER_LINEAR);
-      IplImage* yy = cvCreateImage(cvSize(userdata->width, userdata->height), IPL_DEPTH_8U, 1);
-      cvResize(&y, yy, CV_INTER_LINEAR);
-      //Create the final, 3 channel image      
-      IplImage* image = cvCreateImage(cvSize(userdata->width, userdata->height), IPL_DEPTH_8U, 3);
-      CvArr * output[] = { image };      
-      //map Y to the 1st channel
-      int from_to[] = {0, 0};
-      const CvArr * inputy[] = { yy };
-      cvMixChannels(inputy, 1, output, 1, from_to, 1);
-      //map V to the 2nd channel
-      from_to[1] = 1;
-      const CvArr * inputv[] = { vv };
-      cvMixChannels(inputv, 1, output, 1, from_to, 1);
-      //map U to the 3rd channel
-      from_to[1] = 2;
-      const CvArr * inputu[] = { uu };
-      cvMixChannels(inputu, 1, output, 1, from_to, 1);
-      //convert the colour space      
-      cvCvtColor(image, image, CV_YCrCb2BGR);
-      //save the image
-      cvSaveImage(STILL_TMPFN, image, 0);
-      //cleanup the images
-      cvReleaseImage(&yy);
-      cvReleaseImage(&vv);
-      cvReleaseImage(&uu);
-      cvReleaseImage(&image);
-/**/ 
-      
-      mmal_buffer_header_mem_unlock(buffer);
-
-
-#endif
       if (vcos_semaphore_trywait(&(userdata->complete_semaphore)) != VCOS_SUCCESS) {
         vcos_semaphore_post(&(userdata->complete_semaphore));
         frame_post_count++;
@@ -458,73 +398,13 @@ int setup_encoder(PORT_USERDATA *userdata) {
     return 0;
 }
 
-int main(int argc, char** argv) {
-    PORT_USERDATA userdata;
-    MMAL_STATUS_T status;
-    memset(&userdata, 0, sizeof (PORT_USERDATA));
+void init_userdata(PORT_USERDATA& ud) {
+  memset(&ud, 0, sizeof (PORT_USERDATA));
 
-    userdata.width = DEFAULT_VIDEO_WIDTH;
-    userdata.height = DEFAULT_VIDEO_HEIGHT;
-    userdata.fps = DEFAULT_VIDEO_FPS;    
-
-    int c;
-    opterr = 0;
-
-
-    fprintf(stderr, "VIDEO_WIDTH : %i\n", userdata.width );
-    fprintf(stderr, "VIDEO_HEIGHT: %i\n", userdata.height );
-    fprintf(stderr, "VIDEO_FPS   : %i\n", userdata.fps);
-
-    bcm_host_init();
-
-    if (1 && setup_camera(&userdata) != 0) {
-        fprintf(stderr, "Error: setup camera %x\n", status);
-        return -1;
-    }
-
-    if (1 && setup_encoder(&userdata) != 0) {
-        fprintf(stderr, "Error: setup encoder %x\n", status);
-        return -1;
-    }
-
-    vcos_semaphore_create(&userdata.complete_semaphore, "mmal_opencv_video", 0);
-    /*
-    IplImage* fore = NULL;
-    IplImage* sub = NULL;
-    IplImage* gray = NULL;
-
-    sub = cvCreateImage(cvSize(userdata.opencv_width, userdata.opencv_height), IPL_DEPTH_8U, 1);
-    back = cvCreateImage(cvSize(userdata.opencv_width, userdata.opencv_height), IPL_DEPTH_8U, 1);
-    gray = cvCreateImage(cvSize(userdata.opencv_width, userdata.opencv_height), IPL_DEPTH_8U, 1);
-    
-    userdata.small_image = cvCreateImage(cvSize(userdata.opencv_width, userdata.opencv_height), IPL_DEPTH_8U, 1);
-    userdata.stub = cvCreateImage(cvSize(userdata.width, userdata.height), IPL_DEPTH_8U, 1);
-    */
-    int count = 0;
-
-    int opencv_frames = 0;
-    struct timespec t1;
-    struct timespec t2;
-    clock_gettime(CLOCK_MONOTONIC, &t1);
-
-    struct timespec s;
-    s.tv_sec = 0;
-    s.tv_nsec = 30000000;
-
-    while (1) {
-
-      //nanosleep(&s, NULL);
-
-      if(1){
-        if (vcos_semaphore_wait(&(userdata.complete_semaphore)) == VCOS_SUCCESS) {
-
-	  //printf("frame\n");
-	}
-
-      }
-    }
-
-    return 0;
+  ud.next_frame = (PyObject*)NULL;
+  ud.next_frame_available = false;
+  ud.frames_received = 0;
+  ud.frames_skipped = 0;
 }
 
 
@@ -541,25 +421,31 @@ static PyObject * PyInit(PyObject *self, PyObject *args)
   //  PyErr_SetString(SpamError, "System command failed");
   //  return NULL;
   //}
-
-  npy_intp dims[] = {5, 8};
-  char* dat;
-  dat = (char*)malloc(5*8);
-  for(int kk=0; kk < dims[0]*dims[1]; kk++) dat[kk] = kk;
-
-
-  int x = NPY_UINT8;
-  //  PyObject* pp = PyArray_ZEROS(2, &dims, NPY_UINT8, 0);
-
-  //PyObject* pp = PyArray_New(&PyArray_Type, 2, dims, NPY_UINT8, NULL, NULL, 0, NULL, NULL);
-  PyObject* pp = PyArray_SimpleNewFromData(2, dims, NPY_UINT8, dat);
-
-  return pp;
 }
+
+static PyObject* py_next_frame(PyObject *self, PyObject *args)
+{
+  PyObject* ret;
+
+  if (g_userdata->next_frame_available) {
+    ret = g_userdata->next_frame;
+    g_userdata->next_frame = NULL;
+    g_userdata->next_frame_available = false;
+  }
+  else {
+    Py_INCREF(Py_None);
+    ret = Py_None;
+  }
+
+  return ret;
+}
+
 
 static PyMethodDef RaspicapMethods[] = {
     {"init",  PyInit, METH_VARARGS,
      "Initialize raspicap"},
+    {"next_frame", py_next_frame, METH_VARARGS,
+     "Grab the next available frame"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -578,4 +464,49 @@ PyMODINIT_FUNC initraspicap()
   RaspicapError = PyErr_NewException("raspicap.error", NULL, NULL);
   Py_INCREF(RaspicapError);
   PyModule_AddObject(m, "error", RaspicapError);
+
+    static PORT_USERDATA userdata;
+    MMAL_STATUS_T status;
+
+    g_userdata = &userdata;
+    init_userdata(userdata);
+
+    userdata.width = DEFAULT_VIDEO_WIDTH;
+    userdata.height = DEFAULT_VIDEO_HEIGHT;
+    userdata.fps = DEFAULT_VIDEO_FPS;    
+
+    int c;
+    opterr = 0;
+
+
+    bcm_host_init();
+
+    if (1 && setup_camera(&userdata) != 0) {
+        fprintf(stderr, "Error: setup camera %x\n", status);
+        return;
+    }
+
+    if (1 && setup_encoder(&userdata) != 0) {
+        fprintf(stderr, "Error: setup encoder %x\n", status);
+        return;
+    }
+
+    vcos_semaphore_create(&userdata.complete_semaphore, "mmal_opencv_video", 0);
+    /*
+    while (1) {
+
+      //nanosleep(&s, NULL);
+
+      if(1){
+        if (vcos_semaphore_wait(&(userdata.complete_semaphore)) == VCOS_SUCCESS) {
+
+	  //printf("frame\n");
+	}
+
+      }
+    }
+    */
 }
+
+
+
