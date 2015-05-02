@@ -58,9 +58,13 @@ typedef struct {
   bool next_frame_available;
   unsigned int frames_received;
   unsigned int frames_skipped;
+
+  bool setup_done;
 } PORT_USERDATA;
 
+
 static PORT_USERDATA* g_userdata = NULL;
+static char* g_error_message;
 
 int fill_port_buffer(MMAL_PORT_T *port, MMAL_POOL_T *pool) {
     int q;
@@ -110,25 +114,33 @@ static void camera_video_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T
 
     // Copy the video frame to cvMat objects (one for each component)
     mmal_buffer_header_mem_lock(buffer);
-    /*
-    // Create component matrices
-    unsigned char* pointer = (unsigned char *)(buffer -> data);
-    Mat y(userdata->height, userdata->width, CV_8UC1, pointer);
-    pointer = pointer + (userdata->height*userdata->width);
-    Mat u(userdata->height/2, userdata->width/2, CV_8UC1, pointer);
-    pointer = pointer + (userdata->height*userdata->width/4);
-    Mat v(userdata->height/2, userdata->width/2, CV_8UC1, pointer);
-    */
 
     userdata->frames_received++;
     if (!userdata->next_frame_available) {
       // Create a Python object holding the next frame
+      // Y
+      unsigned char* pointer = (unsigned char *)(buffer -> data);
       npy_intp dims[] = {userdata->height, userdata->width};
-      PyObject* pframe = PyArray_SimpleNew(2, dims, NPY_UINT8);
+      PyObject* y = PyArray_SimpleNew(2, dims, NPY_UINT8);
+      memcpy(PyArray_DATA(((PyArrayObject*)y)), pointer, dims[0]*dims[1]);
 
-      // Copy the data into the object
-      memcpy(PyArray_DATA(((PyArrayObject*)pframe)), (unsigned char*)(buffer->data),
-	     dims[0]*dims[1]);
+      // U
+      dims[0] = userdata->height/2;
+      dims[1] = userdata->height/2;
+      pointer = pointer + (userdata->height*userdata->width);
+      PyObject* u = PyArray_SimpleNew(2, dims, NPY_UINT8);
+      memcpy(PyArray_DATA(((PyArrayObject*)u)), pointer, dims[0]*dims[1]);
+
+      // V
+      pointer = pointer + (userdata->height*userdata->width/4);
+      PyObject* v = PyArray_SimpleNew(2, dims, NPY_UINT8);
+      memcpy(PyArray_DATA(((PyArrayObject*)v)), pointer, dims[0]*dims[1]);
+
+      // Create the frame tuple
+      PyObject* pframe = PyTuple_New(3);
+      PyTuple_SetItem(pframe, 0, y);
+      PyTuple_SetItem(pframe, 1, u);
+      PyTuple_SetItem(pframe, 2, v);
 
       // Set the frame available flag
       userdata->next_frame = pframe;
@@ -173,26 +185,9 @@ static void encoder_output_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER
     mmal_buffer_header_release(buffer);
 }
 
-/**
- * Set the rotation of the image
- * @param camera Pointer to camera component
- * @param rotation Degree of rotation (any number, but will be converted to 0,90,180 or 270 only)
- * @return 0 if successful, non-zero if any parameters out of range
- */
-int raspicamcontrol_set_rotation(MMAL_COMPONENT_T *camera, int rotation)
-{
-   int ret;
-   int my_rotation = ((rotation % 360 ) / 90) * 90;
-
-   ret = mmal_port_parameter_set_int32(camera->output[0], MMAL_PARAMETER_ROTATION, my_rotation);
-   mmal_port_parameter_set_int32(camera->output[1], MMAL_PARAMETER_ROTATION, my_rotation);
-   mmal_port_parameter_set_int32(camera->output[2], MMAL_PARAMETER_ROTATION, my_rotation);
-
-   return ret;
-}
-
 //TODO remove the preview port
 int setup_camera(PORT_USERDATA *userdata) {
+
     MMAL_STATUS_T status;
     MMAL_COMPONENT_T *camera = 0;
     MMAL_ES_FORMAT_T *format;
@@ -203,7 +198,7 @@ int setup_camera(PORT_USERDATA *userdata) {
 
     status = mmal_component_create(MMAL_COMPONENT_DEFAULT_CAMERA, &camera);
     if (status != MMAL_SUCCESS) {
-        fprintf(stderr, "Error: create camera %x\n", status);
+        sprintf(g_error_message, "create camera %x\n", status);
         return -1;
     }
     userdata->camera = camera;
@@ -246,7 +241,7 @@ int setup_camera(PORT_USERDATA *userdata) {
     status = mmal_port_format_commit(camera_preview_port);
 
     if (status != MMAL_SUCCESS) {
-        fprintf(stderr, "Error: camera viewfinder format couldn't be set\n");
+        sprintf(g_error_message, "camera viewfinder format couldn't be set");
         return -1;
     }
 
@@ -268,12 +263,9 @@ int setup_camera(PORT_USERDATA *userdata) {
     camera_video_port->buffer_num = 2;
     camera_video_port->buffer_size = (format->es->video.width * format->es->video.height * 12 / 8 ) * camera_video_port->buffer_num;
 
-    fprintf(stderr, "camera video buffer_size = %d\n", camera_video_port->buffer_size);
-    fprintf(stderr, "camera video buffer_num = %d\n", camera_video_port->buffer_num);
-
     status = mmal_port_format_commit(camera_video_port);
     if (status != MMAL_SUCCESS) {
-        fprintf(stderr, "Error: unable to commit camera video port format (%u)\n", status);
+        sprintf(g_error_message, "Error: unable to commit camera video port format (%u)", status);
         return -1;
     }
 
@@ -285,13 +277,13 @@ int setup_camera(PORT_USERDATA *userdata) {
     status = mmal_port_enable(camera_video_port, camera_video_buffer_callback);
 
     if (status != MMAL_SUCCESS) {
-        fprintf(stderr, "Error: unable to enable camera video port (%u)\n", status);
+        sprintf(g_error_message, "unable to enable camera video port (%u)", status);
         return -1;
     }
 
     status = mmal_component_enable(camera);
     if (status != MMAL_SUCCESS) {
-        fprintf(stderr, "Error: unable to enable camera (%u)\n", status);
+        sprintf(g_error_message, "unable to enable camera (%u)", status);
         return -1;
     }
 
@@ -301,9 +293,6 @@ int setup_camera(PORT_USERDATA *userdata) {
         printf("%s: Failed to start capture\n", __func__);
     }
 
-    raspicamcontrol_set_rotation(camera, userdata->rotation);
-
-    fprintf(stderr, "camera created\n");
     return 0;
 }
 
@@ -318,7 +307,7 @@ int setup_encoder(PORT_USERDATA *userdata) {
 
     status = mmal_component_create(MMAL_COMPONENT_DEFAULT_VIDEO_ENCODER, &encoder);
     if (status != MMAL_SUCCESS) {
-        fprintf(stderr, "Error: unable to create preview (%u)\n", status);
+        sprintf(g_error_message, "unable to create preview (%u)", status);
         return -1;
     }
 
@@ -338,7 +327,7 @@ int setup_encoder(PORT_USERDATA *userdata) {
     // Commit the port changes to the input port 
     status = mmal_port_format_commit(encoder_input_port);
     if (status != MMAL_SUCCESS) {
-        fprintf(stderr, "Error: unable to commit encoder input port format (%u)\n", status);
+        sprintf(g_error_message, "unable to commit encoder input port format (%u)", status);
         return -1;
     }
 
@@ -361,25 +350,18 @@ int setup_encoder(PORT_USERDATA *userdata) {
     // Commit the port changes to the output port    
     status = mmal_port_format_commit(encoder_output_port);
     if (status != MMAL_SUCCESS) {
-        fprintf(stderr, "Error: unable to commit encoder output port format (%u)\n", status);
+        printf(g_error_message, "unable to commit encoder output port format (%u)", status);
         return -1;
     }
-
-    fprintf(stderr, "encoder input buffer_size = %d\n", encoder_input_port->buffer_size);
-    fprintf(stderr, "encoder input buffer_num = %d\n", encoder_input_port->buffer_num);
-
-    fprintf(stderr, "encoder output buffer_size = %d\n", encoder_output_port->buffer_size);
-    fprintf(stderr, "encoder output buffer_num = %d\n", encoder_output_port->buffer_num);
 
     encoder_input_port_pool = (MMAL_POOL_T *) mmal_port_pool_create(encoder_input_port, encoder_input_port->buffer_num, encoder_input_port->buffer_size);
     userdata->encoder_input_pool = encoder_input_port_pool;
     encoder_input_port->userdata = (struct MMAL_PORT_USERDATA_T *) userdata;
     status = mmal_port_enable(encoder_input_port, encoder_input_buffer_callback);
     if (status != MMAL_SUCCESS) {
-        fprintf(stderr, "Error: unable to enable encoder input port (%u)\n", status);
+        sprintf(g_error_message, "unable to enable encoder input port (%u)", status);
         return -1;
     }
-    fprintf(stderr, "encoder input pool has been created\n");
 
     encoder_output_port_pool = (MMAL_POOL_T *) mmal_port_pool_create(encoder_output_port, encoder_output_port->buffer_num, encoder_output_port->buffer_size);
     userdata->encoder_output_pool = encoder_output_port_pool;
@@ -387,14 +369,12 @@ int setup_encoder(PORT_USERDATA *userdata) {
 
     status = mmal_port_enable(encoder_output_port, encoder_output_buffer_callback);
     if (status != MMAL_SUCCESS) {
-        fprintf(stderr, "Error: unable to enable encoder output port (%u)\n", status);
+        sprintf(g_error_message, "unable to enable encoder output port (%u)", status);
         return -1;
     }
-    fprintf(stderr, "encoder output pool has been created\n");    
 
     fill_port_buffer(encoder_output_port, encoder_output_port_pool);
 
-    fprintf(stderr, "encoder has been created\n");
     return 0;
 }
 
@@ -407,24 +387,54 @@ void init_userdata(PORT_USERDATA& ud) {
   ud.frames_skipped = 0;
 }
 
+static PyObject* g_raspicap_error;
+static char* g_setup_keywords[] = {
+  "width", "height", "fps", NULL
+};
+static bool g_setup_done;
 
-
-static PyObject * PyInit(PyObject *self, PyObject *args)
+static PyObject * py_setup(PyObject *self, PyObject *args, PyObject* kwds)
 {
-  int number;
-  int sts;
+  MMAL_STATUS_T status;
 
-  if (!PyArg_ParseTuple(args, "i", &number))
+  g_userdata->width = DEFAULT_VIDEO_WIDTH;
+  g_userdata->height = DEFAULT_VIDEO_HEIGHT;
+  g_userdata->fps = DEFAULT_VIDEO_FPS;    
+
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iii", g_setup_keywords,
+				   &g_userdata->width, &g_userdata->height, 
+				   &g_userdata->fps))
     return NULL;
 
-  //  if (sts < 0) {
-  //  PyErr_SetString(SpamError, "System command failed");
-  //  return NULL;
-  //}
+
+  if (1 && setup_camera(g_userdata) != 0) {
+    PyErr_SetString(g_raspicap_error, g_error_message);
+    return NULL;
+    }
+
+  if (1 && setup_encoder(g_userdata) != 0) {
+    PyErr_SetString(g_raspicap_error, g_error_message);
+    return NULL;
+  }
+
+  bcm_host_init();
+
+  g_setup_done = true;
+
+  Py_INCREF(Py_None);
+  return Py_None;
+
 }
 
 static PyObject* py_next_frame(PyObject *self, PyObject *args)
 {
+  // Make sure the camera is set up
+  if (!g_setup_done) {
+    PyErr_SetString(g_raspicap_error, "Must setup camera before getting frames");
+    return NULL;
+  }
+
+  // No arguments
   PyObject* ret;
 
   if (g_userdata->next_frame_available) {
@@ -440,73 +450,68 @@ static PyObject* py_next_frame(PyObject *self, PyObject *args)
   return ret;
 }
 
+static PyObject* py_next_frame_block(PyObject *self, PyObject *args)
+{
+  // Make sure the camera is set up
+  if (!g_setup_done) {
+    PyErr_SetString(g_raspicap_error, "Must setup camera before getting frames");
+    return NULL;
+  }
 
-static PyMethodDef RaspicapMethods[] = {
-    {"init",  PyInit, METH_VARARGS,
-     "Initialize raspicap"},
+  // Block until a frame is available
+  while (!g_userdata->next_frame_available) {
+      if (vcos_semaphore_wait(&(g_userdata->complete_semaphore)) != VCOS_SUCCESS) {
+	// Problem, raise exception
+      }
+  }
+
+  return py_next_frame(self, args);
+}
+
+
+static PyMethodDef g_raspicap_methods[] = {
+  {"setup",  (PyCFunction)py_setup, METH_VARARGS|METH_KEYWORDS,
+     "Setup camera"},
     {"next_frame", py_next_frame, METH_VARARGS,
-     "Grab the next available frame"},
+     "Grab the next available frame, return None if no frame available"},
+    {"next_frame_block", py_next_frame_block, METH_VARARGS,
+     "Wait until a frame is available, then grab the next available frame"},
+
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
-static PyObject* RaspicapError;
+
+
 
 PyMODINIT_FUNC initraspicap()
 {
+  g_setup_done = false;
+
+  // Initialize NumPy
   import_array();
 
+  // Create application-specific exception
   PyObject *m;
 
-  m = Py_InitModule("raspicap", RaspicapMethods);
+  m = Py_InitModule("raspicap", g_raspicap_methods);
   if (m == NULL)
     return;
 
-  RaspicapError = PyErr_NewException("raspicap.error", NULL, NULL);
-  Py_INCREF(RaspicapError);
-  PyModule_AddObject(m, "error", RaspicapError);
+  g_raspicap_error = PyErr_NewException("raspicap.error", NULL, NULL);
+  Py_INCREF(g_raspicap_error);
+  PyModule_AddObject(m, "error", g_raspicap_error);
 
-    static PORT_USERDATA userdata;
-    MMAL_STATUS_T status;
+  // Basic static initialization
+  static PORT_USERDATA userdata;
 
-    g_userdata = &userdata;
-    init_userdata(userdata);
-
-    userdata.width = DEFAULT_VIDEO_WIDTH;
-    userdata.height = DEFAULT_VIDEO_HEIGHT;
-    userdata.fps = DEFAULT_VIDEO_FPS;    
-
-    int c;
-    opterr = 0;
+  g_userdata = &userdata;
+  init_userdata(userdata);
+  vcos_semaphore_create(&userdata.complete_semaphore, "mmal_opencv_video", 0);
 
 
-    bcm_host_init();
 
-    if (1 && setup_camera(&userdata) != 0) {
-        fprintf(stderr, "Error: setup camera %x\n", status);
-        return;
-    }
-
-    if (1 && setup_encoder(&userdata) != 0) {
-        fprintf(stderr, "Error: setup encoder %x\n", status);
-        return;
-    }
-
-    vcos_semaphore_create(&userdata.complete_semaphore, "mmal_opencv_video", 0);
-    /*
-    while (1) {
-
-      //nanosleep(&s, NULL);
-
-      if(1){
-        if (vcos_semaphore_wait(&(userdata.complete_semaphore)) == VCOS_SUCCESS) {
-
-	  //printf("frame\n");
-	}
-
-      }
-    }
-    */
 }
+
 
 
 
