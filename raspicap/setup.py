@@ -17,7 +17,9 @@ raspicap = Extension('raspicap',
                       'pthread'
                       ],
                     library_dirs = ['/opt/vc/lib'],
-                    sources = ['raspicap.cpp'])
+                    sources = ['RaspiCamControl.cpp', 'raspicap.cpp'
+                               
+                               ])
 
 setup (name = 'raspicap',
        version = '1.0',

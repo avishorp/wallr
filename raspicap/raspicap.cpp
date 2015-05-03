@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#include <opencv2/core/core.hpp>
 #include "bcm_host.h"
 #include "interface/vcos/vcos.h"
 
@@ -17,8 +16,10 @@
 #include "interface/mmal/util/mmal_util_params.h"
 #include "interface/mmal/util/mmal_util.h"
 
-#include <python2.7/Python.h>
+#include <Python.h>
 #include <numpy/ndarrayobject.h>
+
+#include "RaspiCamControl.h"
 
 #define MMAL_CAMERA_PREVIEW_PORT 0
 #define MMAL_CAMERA_VIDEO_PORT 1
@@ -30,8 +31,6 @@
 #define DEFAULT_VIDEO_FPS 30 
 #define DEFAULT_VIDEO_WIDTH 1280
 #define DEFAULT_VIDEO_HEIGHT 720
-
-using namespace cv;
 
 typedef struct {
     int width;
@@ -387,9 +386,13 @@ void init_userdata(PORT_USERDATA& ud) {
   ud.frames_skipped = 0;
 }
 
+
+///////////////////////////// PYTHON INTERFACE ////////////////////////////
+///////////////////////////////////////////////////////////////////////////
+
 static PyObject* g_raspicap_error;
 static char* g_setup_keywords[] = {
-  "width", "height", "fps", NULL
+  "width", "height", "fps", "saturation", "sharpness", "exposure", "awb", NULL
 };
 static bool g_setup_done;
 
@@ -401,9 +404,16 @@ static PyObject * py_setup(PyObject *self, PyObject *args, PyObject* kwds)
   g_userdata->height = DEFAULT_VIDEO_HEIGHT;
   g_userdata->fps = DEFAULT_VIDEO_FPS;    
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iii", g_setup_keywords,
+  int saturation = 0;
+  int sharpness = 0;
+  char* exposure = NULL;
+  char* awb = NULL;
+
+
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iiiiiss", g_setup_keywords,
 				   &g_userdata->width, &g_userdata->height, 
-				   &g_userdata->fps))
+				   &g_userdata->fps, &saturation, &sharpness,
+				   &exposure, &awb))
     return NULL;
 
 
@@ -416,6 +426,41 @@ static PyObject * py_setup(PyObject *self, PyObject *args, PyObject* kwds)
     PyErr_SetString(g_raspicap_error, g_error_message);
     return NULL;
   }
+
+  // Set additional camera parameters
+  raspicamcontrol_set_saturation(g_userdata->camera, saturation);
+  raspicamcontrol_set_sharpness(g_userdata->camera, sharpness);
+  // EXPOSURE
+  if (exposure != NULL) {
+    MMAL_PARAM_EXPOSUREMODE_T m;
+    m = exposure_mode_from_string(exposure);
+
+    if (m==-1) {
+      PyErr_SetString(g_raspicap_error, "Invalid exposure specification");
+      return NULL;
+    }
+
+    if (raspicamcontrol_set_exposure_mode(g_userdata->camera, m) != 0) {
+      PyErr_SetString(g_raspicap_error, "Failed setting exposure mode");
+      return NULL;
+    }
+  }
+  // AWB
+  if (awb != NULL) {
+    MMAL_PARAM_AWBMODE_T m;
+    m = awb_mode_from_string(exposure);
+
+    if (m==-1) {
+      PyErr_SetString(g_raspicap_error, "Invalid awb specification");
+      return NULL;
+    }
+
+    if (raspicamcontrol_set_awb_mode(g_userdata->camera, m) != 0) {
+      PyErr_SetString(g_raspicap_error, "Failed setting awb mode");
+      return NULL;
+    }
+  }
+
 
   bcm_host_init();
 
