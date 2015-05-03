@@ -392,8 +392,10 @@ void init_userdata(PORT_USERDATA& ud) {
 
 static PyObject* g_raspicap_error;
 static char* g_setup_keywords[] = {
-  "width", "height", "fps", "saturation", "sharpness", "exposure", "awb", NULL
+  "width", "height", "fps", NULL
 };
+
+
 static bool g_setup_done;
 
 static PyObject * py_setup(PyObject *self, PyObject *args, PyObject* kwds)
@@ -404,16 +406,10 @@ static PyObject * py_setup(PyObject *self, PyObject *args, PyObject* kwds)
   g_userdata->height = DEFAULT_VIDEO_HEIGHT;
   g_userdata->fps = DEFAULT_VIDEO_FPS;    
 
-  int saturation = 0;
-  int sharpness = 0;
-  char* exposure = NULL;
-  char* awb = NULL;
 
-
-  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iiiiiss", g_setup_keywords,
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iii", g_setup_keywords,
 				   &g_userdata->width, &g_userdata->height, 
-				   &g_userdata->fps, &saturation, &sharpness,
-				   &exposure, &awb))
+				   &g_userdata->fps))
     return NULL;
 
 
@@ -427,10 +423,45 @@ static PyObject * py_setup(PyObject *self, PyObject *args, PyObject* kwds)
     return NULL;
   }
 
-  // Set additional camera parameters
-  raspicamcontrol_set_saturation(g_userdata->camera, saturation);
-  raspicamcontrol_set_sharpness(g_userdata->camera, sharpness);
-  // EXPOSURE
+  bcm_host_init();
+
+  g_setup_done = true;
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+static PyObject * py_set_param(PyObject *self, PyObject *args, PyObject* kwds)
+{
+  static char* g_set_param_keywords[] = {
+    "saturation", "sharpness", "exposure", "awb", "roi", NULL
+  };
+
+  // Make sure the camera is set up
+  if (!g_setup_done) {
+    PyErr_SetString(g_raspicap_error, "Must setup camera before getting frames");
+    return NULL;
+  }
+
+  int saturation = 999;
+  int sharpness = 999;
+  char* exposure = NULL;
+  char* awb = NULL;
+  PyObject* roi = NULL;
+
+  // Parse parameters
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iissO!", g_set_param_keywords,
+				   &saturation, &sharpness, 
+				   &exposure, &awb,
+				   &PyTuple_Type, &roi))
+    return NULL;
+
+  if (saturation != 999)
+    raspicamcontrol_set_saturation(g_userdata->camera, saturation);
+
+  if (sharpness != 999)
+    raspicamcontrol_set_sharpness(g_userdata->camera, sharpness);
+
   if (exposure != NULL) {
     MMAL_PARAM_EXPOSUREMODE_T m;
     m = exposure_mode_from_string(exposure);
@@ -445,7 +476,7 @@ static PyObject * py_setup(PyObject *self, PyObject *args, PyObject* kwds)
       return NULL;
     }
   }
-  // AWB
+
   if (awb != NULL) {
     MMAL_PARAM_AWBMODE_T m;
     m = awb_mode_from_string(exposure);
@@ -461,14 +492,31 @@ static PyObject * py_setup(PyObject *self, PyObject *args, PyObject* kwds)
     }
   }
 
+  if (roi != NULL) {
+    if ((PyTuple_Size(roi) != 4) ||
+        (!PyFloat_Check(PyTuple_GET_ITEM(roi, 0))) ||
+        (!PyFloat_Check(PyTuple_GET_ITEM(roi, 1))) ||
+        (!PyFloat_Check(PyTuple_GET_ITEM(roi, 2))) ||
+        (!PyFloat_Check(PyTuple_GET_ITEM(roi, 3)))) {
 
-  bcm_host_init();
+      PyErr_SetString(g_raspicap_error, "ROI must be a 4 floating point element tuple");
+      return NULL;
+    }
 
-  g_setup_done = true;
+    PARAM_FLOAT_RECT_T rect;
+    rect.x = PyFloat_AS_DOUBLE(PyTuple_GET_ITEM(roi, 0));
+    rect.y = PyFloat_AS_DOUBLE(PyTuple_GET_ITEM(roi, 1));
+    rect.w = PyFloat_AS_DOUBLE(PyTuple_GET_ITEM(roi, 2));
+    rect.h = PyFloat_AS_DOUBLE(PyTuple_GET_ITEM(roi, 3));
+    if (raspicamcontrol_set_ROI(g_userdata->camera, rect) != 0) {
+      PyErr_SetString(g_raspicap_error, "Failed setting ROI");
+      return NULL;
+    }
+
+  }
 
   Py_INCREF(Py_None);
   return Py_None;
-
 }
 
 static PyObject* py_next_frame(PyObject *self, PyObject *args)
@@ -517,12 +565,14 @@ static PyObject* py_next_frame_block(PyObject *self, PyObject *args)
 static PyMethodDef g_raspicap_methods[] = {
   {"setup",  (PyCFunction)py_setup, METH_VARARGS|METH_KEYWORDS,
      "Setup camera"},
-    {"next_frame", py_next_frame, METH_VARARGS,
-     "Grab the next available frame, return None if no frame available"},
-    {"next_frame_block", py_next_frame_block, METH_VARARGS,
-     "Wait until a frame is available, then grab the next available frame"},
+  {"set_param",  (PyCFunction)py_set_param, METH_VARARGS|METH_KEYWORDS,
+     "Set various parameters"},
+  {"next_frame", py_next_frame, METH_VARARGS,
+   "Grab the next available frame, return None if no frame available"},
+  {"next_frame_block", py_next_frame_block, METH_VARARGS,
+   "Wait until a frame is available, then grab the next available frame"},
 
-    {NULL, NULL, 0, NULL}        /* Sentinel */
+  {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
 
