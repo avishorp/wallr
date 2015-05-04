@@ -1,4 +1,5 @@
 import pygame, os.path
+import time, sys, math
 
 BACKGROUND_COLOR = (255, 255, 255) # White background
 SCREEN_SIZE = (640, 480)
@@ -35,7 +36,40 @@ RESOURCES = {
 }
 
 
+class NeedleAnimation:
+    def __init__(self, final, rate, exponent):
+        self.final = final
+        self.baserate = rate
+        self.rate = self.baserate
+        self.exponent = exponent
+        
+    def setStartingPoint(self, stp, stt):
+        self.startPoint = stp
+        self.startTime = stt
+        self.directionUp = self.final > self.startPoint
+        
+    def nextValue(self, now):
+        dt = now - self.startTime
+        r = dt*(self.rate/100.0)
+        l = self.startPoint + (self.final - self.startPoint)*r
+        print "%f %f %f %f %d" % (now, dt, self.rate, r, l)
+
+        if self.exponent is not None:
+            self.rate = math.pow(self.baserate, (r+1)*self.exponent)
+        else:
+            self.rate = self.baserate
+
+        # Determine end condition
+        finish = (self.directionUp and (l >= self.final)) or (not self.directionUp and (l <= self.final))
+        if finish:
+            l = self.final
+        return (l, finish)
+
 class FuelGauge(pygame.sprite.Sprite):
+    # Animation Types
+    ANIMATION_LINEAR = 0
+    ANIMATION_EXPONENTIAL = 1
+
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         
@@ -45,8 +79,28 @@ class FuelGauge(pygame.sprite.Sprite):
         self.needle = RESOURCES['needle']
         
         self.setFuelLevel(0)
+        self.currentAnimation = None
+        self.animations = []
 
-    def draw(self):
+    def draw(self, now):
+        # Apply animation
+        if self.currentAnimation is not None:
+            # An animation is in effect, let it dictate the fuel level
+            l, finish = self.currentAnimation[0].nextValue(now)
+            self.setFuelLevel(l)
+            if finish:
+                cb = self.currentAnimation[1]
+                if cb is not None:
+                    # Kick the callback
+                    cb()
+                self.currentAnimation = None
+
+        else:
+            if len(self.animations) > 0:
+                self.currentAnimation = self.animations.pop(0)
+                self.currentAnimation[0].setStartingPoint(self.level, now)
+
+
         # Copy the background image to a new surface
         r = self.gauge.get_rect()
         self.surface = pygame.Surface(r.size)
@@ -66,6 +120,18 @@ class FuelGauge(pygame.sprite.Sprite):
             raise ValueError("Fuel level must be betweeb 0 to 100")
             
         self.angle = -90.0/100.0*l
+        self.level = l
+        
+    def animateToFuelLevel(self, l, callback = None, rate = 20.0, type = ANIMATION_LINEAR):
+        if l < 0 or l > 100:
+            raise ValueError("Fuel level must be betweeb 0 to 100")
+
+        if type == FuelGauge.ANIMATION_LINEAR:
+            anim = NeedleAnimation(l, rate, None)
+        else:
+            anim = NeedleAnimation(l, rate, 0.995)
+        
+        self.animations.append((anim, callback))
         
     def update(self):
         pass
@@ -78,7 +144,13 @@ class WallrGame(object):
                          pygame.Rect(0, 0, SCREEN_SIZE[0], SCREEN_SIZE[1]))
         
         self.fuelGauge = FuelGauge()
-        self.fuelGauge.setFuelLevel(100)
+        self.fuelGauge.setFuelLevel(0)
+        self.fuelGauge.animateToFuelLevel(100, lambda: sys.stdout.write("Animation 1 done\n"),
+                                          type=FuelGauge.ANIMATION_LINEAR)
+        self.fuelGauge.animateToFuelLevel(0, lambda: sys.stdout.write("Animation 2 done\n"),
+                                          type=FuelGauge.ANIMATION_EXPONENTIAL)
+        self.fuelGauge.animateToFuelLevel(50, lambda: sys.stdout.write("Animation 3 done\n"),
+                                          type=FuelGauge.ANIMATION_EXPONENTIAL)
         self.sprites = pygame.sprite.RenderPlain((self.fuelGauge))
 
 
@@ -96,7 +168,8 @@ class WallrGame(object):
             pygame.draw.rect(self.screen, BACKGROUND_COLOR, 
                          pygame.Rect(0, 0, SCREEN_SIZE[0], SCREEN_SIZE[1]))
             
-            self.fuelGauge.draw()
+            now = time.time()
+            self.fuelGauge.draw(now)
             self.screen.blit(self.fuelGauge.surface, (0,0))
             #self.sprites.draw(self.screen)
             pygame.display.flip()
