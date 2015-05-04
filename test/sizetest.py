@@ -9,8 +9,8 @@ sys.path.append('../src')
 
 import cv2, target
 
-VIDEO_SIZE = (1280, 720)
-TARGET_SIZE = range(15, 60)
+VIDEO_SIZE = (1920, 1080)
+TARGET_SIZE = range(12, 60)
 
 
 def graph_point(v, width):

@@ -18,11 +18,15 @@ class DebugTracker(tracker.Tracker):
         self.input_file = input_file
         self.output_file = output_file
 
-    def onFrame(self, nFrame, iimg, pimg, sel_loc, sel_val):
-        super(DebugTracker, self).onFrame(nFrame, iimg, pimg, sel_loc, sel_val)
+    def onFrame(self, nFrame, iimg, pimg):
+        super(DebugTracker, self).onFrame(nFrame, iimg, pimg)
             
         imgdisp = cv2.cvtColor(pimg, cv2.cv.CV_GRAY2RGB)
         #imgdisp = cv2.cvtColor(self.m, cv2.cv.CV_GRAY2RGB)
+
+        # Draw the tracking window
+        cv2.rectangle(imgdisp, (self.window.xleft, self.window.ytop),
+                      (self.window.xright, self.window.ybottom), color=[0,0,255])
 
         if self.state == tracker.TRK_STATE_ACQUIRE:
             statetxt = "ACK"
@@ -31,12 +35,8 @@ class DebugTracker(tracker.Tracker):
                 self.crosshair(imgdisp, d[0], color=[0,255,0])
         else:
             statetxt = "LOCK"
+            self.crosshair(imgdisp, self.detectionPoint, color=[0,0,255])
             
-            # Draw the tracking window
-            cv2.rectangle(imgdisp, (self.window.xleft, self.window.ytop),
-                          (self.window.xright, self.window.ybottom), color=[0,0,255])
-
-
 
         cv2.putText(imgdisp, text=statetxt, org=(8,50), 
                     fontFace=cv2.FONT_HERSHEY_PLAIN, 
@@ -46,6 +46,7 @@ class DebugTracker(tracker.Tracker):
 
         if self.show_image:
             cv2.imshow('tracker', imgdisp)
+            cv2.imshow('matches', self.matches)
         self.nFrames += 1
             
         if (cv2.getTickCount() - self.t) > self.sec:
