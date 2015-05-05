@@ -39,25 +39,30 @@ RESOURCES = {
 class NeedleAnimation:
     def __init__(self, final, rate, exponent):
         self.final = final
-        self.baserate = rate
-        self.rate = self.baserate
+        self.baseRate = rate
+        self.rate = self.baseRate
         self.exponent = exponent
         
     def setStartingPoint(self, stp, stt):
         self.startPoint = stp
         self.startTime = stt
         self.directionUp = self.final > self.startPoint
+        self.range = abs(self.final - self.startPoint)
         
     def nextValue(self, now):
         dt = now - self.startTime
         r = dt*(self.rate/100.0)
         l = self.startPoint + (self.final - self.startPoint)*r
-        print "%f %f %f %f %d" % (now, dt, self.rate, r, l)
+        rel = l/self.range
+        if not self.directionUp:
+            rel = 1 - rel
+
+        #print "%f %f %f %f %f %d" % (now, dt, self.rate, r, rel, l)
 
         if self.exponent is not None:
-            self.rate = math.pow(self.baserate, (r+1)*self.exponent)
+            self.rate = self.baseRate*(1 +rel*self.exponent)
         else:
-            self.rate = self.baserate
+            self.rate = self.baseRate
 
         # Determine end condition
         finish = (self.directionUp and (l >= self.final)) or (not self.directionUp and (l <= self.final))
@@ -81,6 +86,8 @@ class FuelGauge(pygame.sprite.Sprite):
         self.setFuelLevel(0)
         self.currentAnimation = None
         self.animations = []
+        self.constantRate = None
+        self.constantRateState = None
 
     def draw(self, now):
         # Apply animation
@@ -99,6 +106,9 @@ class FuelGauge(pygame.sprite.Sprite):
             if len(self.animations) > 0:
                 self.currentAnimation = self.animations.pop(0)
                 self.currentAnimation[0].setStartingPoint(self.level, now)
+            else:
+                # No animation in queue, apply constant rate
+                pass
 
 
         # Copy the background image to a new surface
@@ -122,17 +132,20 @@ class FuelGauge(pygame.sprite.Sprite):
         self.angle = -90.0/100.0*l
         self.level = l
         
-    def animateToFuelLevel(self, l, callback = None, rate = 20.0, type = ANIMATION_LINEAR):
+    def animateToFuelLevel(self, l, callback = None, rate = 70.0, type = ANIMATION_LINEAR):
         if l < 0 or l > 100:
             raise ValueError("Fuel level must be betweeb 0 to 100")
 
         if type == FuelGauge.ANIMATION_LINEAR:
             anim = NeedleAnimation(l, rate, None)
         else:
-            anim = NeedleAnimation(l, rate, 0.995)
+            anim = NeedleAnimation(l, rate, -0.5)
         
         self.animations.append((anim, callback))
-        
+
+    def setConstantRate(self, rate, callback):
+        pass
+
     def update(self):
         pass
         
@@ -145,8 +158,9 @@ class WallrGame(object):
         
         self.fuelGauge = FuelGauge()
         self.fuelGauge.setFuelLevel(0)
+        self.fuelGauge.setConstantRate(-5, lambda: sys.stdout.write("Constant rate done"))
         self.fuelGauge.animateToFuelLevel(100, lambda: sys.stdout.write("Animation 1 done\n"),
-                                          type=FuelGauge.ANIMATION_LINEAR)
+                                          type=FuelGauge.ANIMATION_EXPONENTIAL)
         self.fuelGauge.animateToFuelLevel(0, lambda: sys.stdout.write("Animation 2 done\n"),
                                           type=FuelGauge.ANIMATION_EXPONENTIAL)
         self.fuelGauge.animateToFuelLevel(50, lambda: sys.stdout.write("Animation 3 done\n"),
