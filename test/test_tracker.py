@@ -27,7 +27,13 @@ class DebugTracker(tracker.Tracker):
         self.output_file = output_file
 
     def cblog(self, msg, param):
-        print "Tracker Message: " + self.messages[msg]
+        s = "Tracker Message: %s" % self.messages[msg]
+        if (msg == tracker.MSG_LOCK_PROGRESS):
+            s += " (progress: %f)" % param
+        if (msg == tracker.MSG_COORDINATES):
+            s += " (x=%d, y=%d)" % (param['x'], param['y'])
+
+        print s
 
     def onFrame(self, nFrame, iimg, pimg):
         super(DebugTracker, self).onFrame(nFrame, iimg, pimg)

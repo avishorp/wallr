@@ -115,10 +115,10 @@ class Tracker(threading.Thread):
         self.rroi = roi
                    
 
-        self.matches = cv2.matchTemplate(roi, self.target, cv2.TM_SQDIFF_NORMED)
+        self.matches = cv2.matchTemplate(roi, self.target, cv2.TM_CCORR_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(self.matches)
-        sel_val = min_val
-        sel_loc = (min_loc[0] + self.window.xleft, min_loc[1] + self.window.ytop)
+        sel_val = max_val
+        sel_loc = (max_loc[0] + self.window.xleft, max_loc[1] + self.window.ytop)
         
         if self.state == TRK_STATE_ACQUIRE:
             # Target aquisition state
@@ -137,7 +137,20 @@ class Tracker(threading.Thread):
                     # The criterion for switching from ACQUIRE state
                     # to locked state is that the standard deviation of the
                     # detection center is lower than a predefined threshold
-                    c = self.stddev(zip(*self.lastDetections)[0])
+                    # Moreover, in order to trace the progress of the acuisition
+                    # process, we calculate the stddev for every n points starting
+                    # from the less recent one.
+                    sdv = [ self.stddev(zip(*self.lastDetections[:i])[0])
+                                        for i in range(1,len(self.lastDetections)) ]
+                    try:
+                        first_fail = [ll < LOCK_SWITCH_STDDEV for ll in sdv].index(False)
+                        progress = first_fail*1.0/len(sdv)
+                    except ValueError:
+                        progress = 1.0
+
+                    self.callback(MSG_LOCK_PROGRESS, progress)
+
+                    c = sdv[-1]
                     
                     if c < LOCK_SWITCH_STDDEV:
                         # There are enough "good" samples, the standard deviation
