@@ -20,11 +20,20 @@ INITIAL_SEARCH_WINDOW = trkutil.Rectangle(640-200, 640+200, 360-200, 360+200)
 TRK_STATE_ACQUIRE = 0
 TRK_STATE_LOCKED = 1
 
+# Message types that can be sen to the callback function
+#
+MSG_SWITCH_TO_ACQ  = 0 # No parameters
+MSG_SWITCH_TO_LOCK = 1 # No parameters
+MSG_COORDINATES    = 2 # (x,y) of the detection
+MSG_LOCK_PROGRESS  = 3 # A number between 0 to 100 designating the acquisition progress
+
 class Tracker(threading.Thread):
-    def __init__(self, targetCls):
+
+    def __init__(self, targetCls, callback):
         super(Tracker, self).__init__()
         
         self.running = False
+        self.callback = callback
 
         # Create a target image
         self.target = targetCls(TARGET_SIZE).getImage()
@@ -41,7 +50,8 @@ class Tracker(threading.Thread):
         self.state = TRK_STATE_ACQUIRE
         self.lastDetections = []
         self.window = INITIAL_SEARCH_WINDOW
-        self.onAcquire()
+
+        self.callback(MSG_SWITCH_TO_ACQ, None);
         
     def switchToLocked(self, point, value):
         self.state = TRK_STATE_LOCKED
@@ -50,7 +60,8 @@ class Tracker(threading.Thread):
         self.detectionThreshold = value*(1-DETECTION_MARGIN)
         self.failCount = LOCK_FAIL_RETENTION
         self.window = self.calcWindow(point, TRACK_WINDOW, VIDEO_SIZE)
-        self.onLock()
+
+        self.callback(MSG_SWITCH_TO_LOCK, None);
         
     def calcWindow(self, point, size, screen):
         #     | size_x |
@@ -150,6 +161,10 @@ class Tracker(threading.Thread):
                 self.window = self.calcWindow(self.detectionPoint, TRACK_WINDOW, VIDEO_SIZE)
                 self.failCount = LOCK_FAIL_RETENTION
 
+                # Generate a message
+                self.callback(MSG_COORDINATES, 
+                              {'x': self.detectionPoint[0], 'y': self.detectionPoint[1]})
+
             else:
                 # Failed detection
                 self.failCount -= 1
@@ -158,15 +173,6 @@ class Tracker(threading.Thread):
                     # Too many failures, switch back to acquisition
                     self.switchToAcquire()
 
-
-    def onCoordinates(self, img, x, y):
-        pass
-
-    def onLock(self):
-        pass
-        
-    def onAcquire(self):
-        pass
     
     def stddev(self, points):
         # Is it mathematically correct?

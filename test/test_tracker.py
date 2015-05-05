@@ -9,14 +9,25 @@ import cv2, target, tracker
 import getopt, time, signal
 
 class DebugTracker(tracker.Tracker):
+
+    messages = {
+        tracker.MSG_SWITCH_TO_ACQ: 'SWITCH_TO_ACQ',
+        tracker.MSG_SWITCH_TO_LOCK: 'SWITCH_TO_LOCK',
+        tracker.MSG_COORDINATES: 'COORDINATES',
+        tracker.MSG_LOCK_PROGRESS: 'LOCK_PROGRESS'
+        }
+
     def __init__(self, targetCls, show_image, input_file, output_file):
-        super(DebugTracker, self).__init__(targetCls)
+        super(DebugTracker, self).__init__(targetCls, self.cblog)
         self.t = cv2.getTickCount()
         self.sec = cv2.getTickFrequency()
         self.nFrames = 0
         self.show_image = show_image
         self.input_file = input_file
         self.output_file = output_file
+
+    def cblog(self, msg, param):
+        print "Tracker Message: " + self.messages[msg]
 
     def onFrame(self, nFrame, iimg, pimg):
         super(DebugTracker, self).onFrame(nFrame, iimg, pimg)
