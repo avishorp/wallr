@@ -1,41 +1,10 @@
 import pygame, os.path
 import time, sys, math
 from animation import Animation
+from WallrResources import RESOURCES
 
 BACKGROUND_COLOR = (255, 255, 255) # White background
 SCREEN_SIZE = (640, 480)
-RESOURCE_DIR = "../res"
-
-class Resource(object):
-    def __init__(self, path, filename, **kwargs):
-        self.filename = os.path.join(path, filename)
-        for k in kwargs:
-            setattr(self, k, kwargs[k])
-
-class ImageResource(Resource):
-    def __init__(self, path, filename, center=None, colorkey=None, **kwargs):
-        # Call parent to process generic parameters
-        super(ImageResource, self).__init__(path, filename, **kwargs)
-        
-        # Load the resource
-        self.image = pygame.image.load(self.filename)
-        if center is not None:
-            self.image.get_rect().center = center
-
-        if colorkey is not None:
-            self.image.set_colorkey(colorkey)
-            
-    def get_rect(self):
-        return self.image.get_rect()
-
-RESOURCES = {
-    'fuel_gauge': ImageResource(RESOURCE_DIR, 'fuel_gauge.png', center=(100, 100),
-                                keycolor = (255,255,255),
-                                needle_pos = (132, 137)),
-    'needle': ImageResource(RESOURCE_DIR, 'needle.png', 
-                            center = (105, 4), keycolor = (255, 255, 255))
-}
-
 
 class FuelGauge(pygame.sprite.Sprite):
     # Animation Types
