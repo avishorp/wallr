@@ -1,75 +1,132 @@
 import cv2
 from target import TrackingTarget
-import numpy
+import numpy, threading, Queue
+import trkutil
+import raspicap
 
-USE_HD = False
-TARGET_SIZE = 40 if USE_HD else 25
-VIDEO_SIZE = (1270, 720) if USE_HD else (640, 480)
+TARGET_SIZE = 20
+VIDEO_SIZE = (1920, 1080)
 VIDEO_SOURCE = 0
 TRACK_WINDOW = (100, 100)
 LOCK_RETENTION = 20
 LOCK_THRESHOLD = 0.05
 LOCK_SWITCH_STDDEV = 0.2
+NUM_MATCHERS = 4
+DETECTION_MARGIN = 0.1
+LOCK_FAIL_RETENTION = 5
+INITIAL_SEARCH_WINDOW = trkutil.Rectangle(640-200, 640+200, 360-200, 360+200)
 
 # Tracking states
 TRK_STATE_ACQUIRE = 0
 TRK_STATE_LOCKED = 1
 
-class Tracker(object):
-    def __init__(self, targetCls):
+# Message types that can be sen to the callback function
+#
+MSG_SWITCH_TO_ACQ  = 0 # No parameters
+MSG_SWITCH_TO_LOCK = 1 # No parameters
+MSG_COORDINATES    = 2 # (x,y) of the detection
+MSG_LOCK_PROGRESS  = 3 # A number between 0 to 100 designating the acquisition progress
+
+class Tracker(threading.Thread):
+
+    def __init__(self, targetCls, callback):
+        super(Tracker, self).__init__()
+        
+        self.running = False
+        self.callback = callback
+
         # Create a target image
         self.target = targetCls(TARGET_SIZE).getImage()
 
         # Reset the state
+        self.nFrame = 0
         self.reset = self.switchToAcquire
         self.reset()
 
-        # Initialize the video capture
-        self.cap = cv2.VideoCapture(VIDEO_SOURCE)
-        self.cap.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, VIDEO_SIZE[0])
-        self.cap.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, VIDEO_SIZE[1])
-
-        self.running = True
+        # Initialize the camera
+        raspicap.setup()
 
     def switchToAcquire(self):
         self.state = TRK_STATE_ACQUIRE
         self.lastDetections = []
-        self.onAcquire()
+        self.window = INITIAL_SEARCH_WINDOW
+
+        self.callback(MSG_SWITCH_TO_ACQ, None);
         
-    def switchToLocked(self, point):
+    def switchToLocked(self, point, value):
         self.state = TRK_STATE_LOCKED
-        self.window = None
-        self.onLock()
+
+        self.detectionPoint = point
+        self.detectionThreshold = value*(1-DETECTION_MARGIN)
+        self.failCount = LOCK_FAIL_RETENTION
+        self.window = self.calcWindow(point, TRACK_WINDOW, VIDEO_SIZE)
+
+        self.callback(MSG_SWITCH_TO_LOCK, None);
+        
+    def calcWindow(self, point, size, screen):
+        #     | size_x |
+        #     +----------------+--
+        #     |                | ^
+        #     |                | size_y
+        #     |                | v
+        #     |        O       |--
+        #     |                |
+        #     |                |
+        #     |                |
+        #     +----------------+
+
+        # Correct the center point so that the target is in the middle
+        # of the window
+        pp = (point[0] + TARGET_SIZE/2, point[1]+TARGET_SIZE/2)
+        win = trkutil.Rectangle(
+            self.clip(pp[0]-size[0], screen[0]), # xleft
+            self.clip(pp[0]+size[0], screen[0]), # xright
+            self.clip(pp[1]-size[1], screen[1]), # ytop
+            self.clip(pp[1]+size[1], screen[1])) # ybottom
+
+        return win
+            
+    def clip(self, value, maxvalue):
+        return max(0, int(min(maxvalue, value)))
+
+    def terminate(self):
+        self.running = False
+        self.join()
+        print "Tracker terminated"
 
     def run(self):
+        self.running = True
+        print "Tracker thread running"
         while self.running:
-            # Capture a frame
-            ret, img = self.cap.read()
+            # Wait on the match queue
+            rawFrame = raspicap.next_frame_block()
+            self.nFrame += 1
+            
+            iimg = rawFrame[0] # Only the Y component
+            pimg = cv2.equalizeHist(iimg)
+            self.onFrame(self.nFrame, iimg, pimg)
 
-            if ret:
-                # Convert the frame to grayscale
-                imggray = cv2.cvtColor(img, cv2.cv.CV_RGB2GRAY)
-                imggray = cv2.equalizeHist(imggray)
-                self.onFrame(imggray)
-
-    def stop(self):
-        self.running = False
-
-    def onFrame(self, img):
+    def onFrame(self, nFrame, iimg, pimg):
         "Default callback for frame display"
+        
+        # Run template matching
+        roi = pimg[self.window.ytop:self.window.ybottom,
+                   self.window.xleft:self.window.xright]
+        self.rroi = roi
+                   
+
+        self.matches = cv2.matchTemplate(roi, self.target, cv2.TM_CCORR_NORMED)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(self.matches)
+        sel_val = max_val
+        sel_loc = (max_loc[0] + self.window.xleft, max_loc[1] + self.window.ytop)
+        
         if self.state == TRK_STATE_ACQUIRE:
             # Target aquisition state
-            
-            # Try to find the target across the whole image
-            matches = cv2.matchTemplate(img, self.target, cv2.TM_CCORR_NORMED)
-            self.m = matches
-            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(matches)
-            sel_val = min_val
-            sel_loc = min_loc
-            print sel_val
+            #########################
+
             # Make sure the detection is not too weak
             if sel_val > LOCK_THRESHOLD:
-                self.lastDetections.append(sel_loc)
+                self.lastDetections.append((sel_loc, sel_val))
 
                 # In order to declare lock, we must have
                 # LOCK_RETENTION samples in the buffer
@@ -80,7 +137,20 @@ class Tracker(object):
                     # The criterion for switching from ACQUIRE state
                     # to locked state is that the standard deviation of the
                     # detection center is lower than a predefined threshold
-                    c = self.stddev(self.lastDetections)
+                    # Moreover, in order to trace the progress of the acuisition
+                    # process, we calculate the stddev for every n points starting
+                    # from the less recent one.
+                    sdv = [ self.stddev(zip(*self.lastDetections[:i])[0])
+                                        for i in range(1,len(self.lastDetections)) ]
+                    try:
+                        first_fail = [ll < LOCK_SWITCH_STDDEV for ll in sdv].index(False)
+                        progress = first_fail*1.0/len(sdv)
+                    except ValueError:
+                        progress = 1.0
+
+                    self.callback(MSG_LOCK_PROGRESS, progress)
+
+                    c = sdv[-1]
                     
                     if c < LOCK_SWITCH_STDDEV:
                         # There are enough "good" samples, the standard deviation
@@ -88,75 +158,37 @@ class Tracker(object):
 
                         # The detection point is the average of all the detection
                         # points in the last detections
-                        dp = map(numpy.average, zip(*self.lastDetections))
-                        self.switchToLocked(dp)
-        
-    def onCoordinates(self, img, x, y):
-        pass
+                        p = zip(*self.lastDetections)[0]
+                        v = zip(*self.lastDetections)[1]
+                        point = map(lambda n: int(round(numpy.average(n))),
+                                    zip(*p))
+                        value = numpy.average(v)
+                        self.switchToLocked(point, value)
 
-    def onLock(self):
-        print "Switching to LOCK"
-        
-    def onAcquire(self):
-        print "Switching to ACKQUIRE"
+        else:
+            # Locked state
+            ##############
+            if sel_val > self.detectionThreshold:
+                # Successful detection
+                self.detectionPoint = sel_loc
+                self.window = self.calcWindow(self.detectionPoint, TRACK_WINDOW, VIDEO_SIZE)
+                self.failCount = LOCK_FAIL_RETENTION
+
+                # Generate a message
+                self.callback(MSG_COORDINATES, 
+                              {'x': self.detectionPoint[0], 'y': self.detectionPoint[1]})
+
+            else:
+                # Failed detection
+                self.failCount -= 1
+                
+                if self.failCount == 0:
+                    # Too many failures, switch back to acquisition
+                    self.switchToAcquire()
+
     
     def stddev(self, points):
         # Is it mathematically correct?
         v = map(numpy.std, zip(*points))
         return numpy.sqrt(v[0]*v[0] + v[1]*v[1] )
-
-##################################
-
-if __name__=='__main__':
-    class DebugTracker(Tracker):
-        def __init__(self, targetCls):
-            super(DebugTracker, self).__init__(targetCls)
-            self.t = cv2.getTickCount()
-            self.sec = cv2.getTickFrequency()
-            self.nFrames = 0
-
-        def onFrame(self, img):
-            super(DebugTracker, self).onFrame(img)
-            
-            imgdisp = cv2.cvtColor(img, cv2.cv.CV_GRAY2RGB)
-            #imgdisp = cv2.cvtColor(self.m, cv2.cv.CV_GRAY2RGB)
-
-            if self.state == TRK_STATE_ACQUIRE:
-                statetxt = "ACK"
-                
-                for d in self.lastDetections:
-                    self.crosshair(imgdisp, d, color=[0,255,0])
-            else:
-                statetxt = "LOCK"
-
-            cv2.putText(imgdisp, text=statetxt, org=(8,50), 
-                        fontFace=cv2.FONT_HERSHEY_PLAIN, 
-                        fontScale=3, 
-                        color=[255, 255, 0])
-            cv2.rectangle(imgdisp, (0,0), (TARGET_SIZE,TARGET_SIZE), color=[255,0,0])
-            cv2.imshow('tracker', imgdisp)
-            self.nFrames += 1
-            
-            if (cv2.getTickCount() - self.t) > self.sec:
-                print "FPS=%d" % self.nFrames
-                self.nFrames = 0
-                self.t = cv2.getTickCount()
-
-            ch = 0xFF & cv2.waitKey(1)
-            
-            if (ch == 'q'):
-                self.stop()
-
-        def onCoordinates(self, img, x, y):
-            #cv2.circle(img, (x,y), 10, color=[255, 0, 0], thickness=2)
-            pass
-        
-        def crosshair(self, img, center, color):
-            x = center[0]
-            y = center[1]
-            cv2.line(img, (x-5, y), (x+5,y), color = color, thickness=1)
-            cv2.line(img, (x, y-5), (x,y+5), color = color, thickness=1)
-
-    trk = DebugTracker(TrackingTarget)
-    trk.run()
-
+    
