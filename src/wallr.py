@@ -6,6 +6,48 @@ from WallrResources import RESOURCES
 BACKGROUND_COLOR = (255, 255, 255) # White background
 SCREEN_SIZE = (640, 480)
 
+class ProgressBar(pygame.sprite.Sprite):
+    def __init__(self, width, height, num_divisions = 10, spacing = 3, 
+                 inactive_color = (0, 64, 0), active_color = (0, 255, 0),
+                 bg_color = (255, 255, 255)):
+        self.size = (width, height)
+        self.num_divisions = 10
+        self.spacing = 3
+        self.inactive_color = inactive_color
+        self.active_color = active_color
+        self.bg_color = bg_color
+
+        self.progress = 0
+        self.div = 1.0/self.num_divisions
+        self.bar_width = width / num_divisions - spacing 
+
+    def setProgress(self, progress):
+        if progress < 0 or progress > 1.0:
+            raise ValueError("Progress must be between 0 to 1")
+        self.progress = progress
+        
+    def getProgress(self):
+        return self.progress
+
+    def draw(self):
+        s = pygame.Surface(self.size)
+        s.fill(self.bg_color)
+        
+        x = 0
+        prg = 0
+        for d in range(0, self.num_divisions):
+            if prg <= self.progress:
+                clr = self.active_color
+            else:
+                clr = self.inactive_color
+                
+            pygame.draw.rect(s, clr, 
+                             pygame.Rect(x, 0, self.bar_width, self.size[1]))
+            x += self.bar_width + self.spacing
+            prg += self.div
+
+        return s
+
 class FuelGauge(pygame.sprite.Sprite):
     # Animation Types
     ANIMATION_LINEAR = 0
@@ -111,10 +153,13 @@ class WallrGame(object):
         self.fuelGauge = FuelGauge()
         self.fuelGauge.setFuelLevel(0)
         self.fuelGauge.animateToFuelLevel(100, self.s1, type=FuelGauge.ANIMATION_EXPONENTIAL)
-        #self.fuelGauge.animateToFuelLevel(0, lambda: sys.stdout.write("Animation 2 done\n"),
-        #                                  type=FuelGauge.ANIMATION_EXPONENTIAL)
-        #self.fuelGauge.animateToFuelLevel(50, lambda: sys.stdout.write("Animation 3 done\n"),
-        #                                  type=FuelGauge.ANIMATION_EXPONENTIAL)
+        
+        self.progressBar = ProgressBar(10*13, 30)
+        self.progressBar.setProgress(0)
+        self.pa = Animation(self.progressBar, self.progressBar.getProgress,
+                                 self.progressBar.setProgress, 1.0, rate=1.0)
+        self.pa.start()
+
         self.sprites = pygame.sprite.RenderPlain((self.fuelGauge))
 
     def s1(self):
@@ -147,6 +192,10 @@ class WallrGame(object):
                 flg = True
             self.fuelGauge.draw(now)
             self.screen.blit(self.fuelGauge.surface, (0,0))
+
+            p = self.progressBar.draw()
+            self.pa.nextValue(time.time())
+            self.screen.blit(p, (100,100))
             #self.sprites.draw(self.screen)
             pygame.display.flip()
 
