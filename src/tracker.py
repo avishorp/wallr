@@ -1,20 +1,9 @@
 import cv2
 from target import TrackingTarget
-import numpy, threading, Queue
+import numpy, threading, Queue, ast
+import time
 import trkutil
-import raspicap
-
-TARGET_SIZE = 20
-VIDEO_SIZE = (1920, 1080)
-VIDEO_SOURCE = 0
-TRACK_WINDOW = (100, 100)
-LOCK_RETENTION = 20
-LOCK_THRESHOLD = 0.05
-LOCK_SWITCH_STDDEV = 0.2
-NUM_MATCHERS = 4
-DETECTION_MARGIN = 0.1
-LOCK_FAIL_RETENTION = 5
-INITIAL_SEARCH_WINDOW = trkutil.Rectangle(640-200, 640+200, 360-200, 360+200)
+import WallrSettings, WallrVideo
 
 # Tracking states
 TRK_STATE_ACQUIRE = 0
@@ -35,8 +24,21 @@ class Tracker(threading.Thread):
         self.running = False
         self.callback = callback
 
+        # Get tracker settings from settings file
+        st = WallrSettings.settings.tracker
+        self.target_size = int(st['target size'])
+        self.search_win = trkutil.Rectangle(*ast.literal_eval(st['initial search window']))
+        self.lock_retention = int(st['lock retention'])
+        self.lock_threshold = float(st['lock threshold'])
+        self.lock_stddev = float(st['lock stddev'])
+        self.track_window = ast.literal_eval(st['track window'])
+        self.track_margin = float(st['track margin'])
+        self.track_retention = int(st['track retention'])
+        self.screen_size = (WallrSettings.settings.video.width,
+                            WallrSettings.settings.video.height)
+
         # Create a target image
-        self.target = targetCls(TARGET_SIZE).getImage()
+        self.target = targetCls(self.target_size).getImage()
 
         # Reset the state
         self.nFrame = 0
@@ -44,12 +46,13 @@ class Tracker(threading.Thread):
         self.reset()
 
         # Initialize the camera
-        raspicap.setup()
+        self.vsource = WallrVideo.WallrVideo(WallrSettings.settings.video)
+        self.vsource.setup()
 
     def switchToAcquire(self):
         self.state = TRK_STATE_ACQUIRE
         self.lastDetections = []
-        self.window = INITIAL_SEARCH_WINDOW
+        self.window = self.search_win
 
         self.callback(MSG_SWITCH_TO_ACQ, None);
         
@@ -57,9 +60,9 @@ class Tracker(threading.Thread):
         self.state = TRK_STATE_LOCKED
 
         self.detectionPoint = point
-        self.detectionThreshold = value*(1-DETECTION_MARGIN)
-        self.failCount = LOCK_FAIL_RETENTION
-        self.window = self.calcWindow(point, TRACK_WINDOW, VIDEO_SIZE)
+        self.detectionThreshold = value*(1-self.track_margin)
+        self.failCount = self.track_retention
+        self.window = self.calcWindow(point, self.track_window, self.screen_size)
 
         self.callback(MSG_SWITCH_TO_LOCK, None);
         
@@ -77,11 +80,11 @@ class Tracker(threading.Thread):
 
         # Correct the center point so that the target is in the middle
         # of the window
-        pp = (point[0] + TARGET_SIZE/2, point[1]+TARGET_SIZE/2)
+        pp = (point[0] + size[0]/2, point[1]+size[1]/2)
         win = trkutil.Rectangle(
             self.clip(pp[0]-size[0], screen[0]), # xleft
-            self.clip(pp[0]+size[0], screen[0]), # xright
             self.clip(pp[1]-size[1], screen[1]), # ytop
+            self.clip(pp[0]+size[0], screen[0]), # xright
             self.clip(pp[1]+size[1], screen[1])) # ybottom
 
         return win
@@ -99,7 +102,7 @@ class Tracker(threading.Thread):
         print "Tracker thread running"
         while self.running:
             # Wait on the match queue
-            rawFrame = raspicap.next_frame_block()
+            rawFrame = self.vsource.next_frame_block()
             self.nFrame += 1
             
             iimg = rawFrame[0] # Only the Y component
@@ -114,23 +117,23 @@ class Tracker(threading.Thread):
                    self.window.xleft:self.window.xright]
         self.rroi = roi
                    
-
-        self.matches = cv2.matchTemplate(roi, self.target, cv2.TM_CCORR_NORMED)
+        self.matches = cv2.matchTemplate(roi, self.target, cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(self.matches)
         sel_val = max_val
-        sel_loc = (max_loc[0] + self.window.xleft, max_loc[1] + self.window.ytop)
+        sel_loc = max_loc
+        sel_loc = (sel_loc[0] + self.window.xleft, sel_loc[1] + self.window.ytop)
         
         if self.state == TRK_STATE_ACQUIRE:
             # Target aquisition state
             #########################
 
             # Make sure the detection is not too weak
-            if sel_val > LOCK_THRESHOLD:
+            if sel_val > self.lock_threshold:
                 self.lastDetections.append((sel_loc, sel_val))
 
                 # In order to declare lock, we must have
                 # LOCK_RETENTION samples in the buffer
-                if len(self.lastDetections) > LOCK_RETENTION:
+                if len(self.lastDetections) > self.lock_retention:
                     # Remove the oldest sample from the list
                     self.lastDetections.pop(0)
 
@@ -143,8 +146,8 @@ class Tracker(threading.Thread):
                     sdv = [ self.stddev(zip(*self.lastDetections[:i])[0])
                                         for i in range(1,len(self.lastDetections)) ]
                     try:
-                        first_fail = [ll < LOCK_SWITCH_STDDEV for ll in sdv].index(False)
-                        progress = first_fail*1.0/len(sdv)
+                        first_fail = [ll < self.lock_stddev for ll in sdv].index(False)
+                        progress = 1.0-first_fail*1.0/len(sdv)
                     except ValueError:
                         progress = 1.0
 
@@ -152,7 +155,7 @@ class Tracker(threading.Thread):
 
                     c = sdv[-1]
                     
-                    if c < LOCK_SWITCH_STDDEV:
+                    if c < self.lock_stddev:
                         # There are enough "good" samples, the standard deviation
                         # is small enough - switch to locked state
 
@@ -171,8 +174,8 @@ class Tracker(threading.Thread):
             if sel_val > self.detectionThreshold:
                 # Successful detection
                 self.detectionPoint = sel_loc
-                self.window = self.calcWindow(self.detectionPoint, TRACK_WINDOW, VIDEO_SIZE)
-                self.failCount = LOCK_FAIL_RETENTION
+                self.window = self.calcWindow(self.detectionPoint, self.track_window, self.screen_size)
+                self.failCount = self.lock_retention
 
                 # Generate a message
                 self.callback(MSG_COORDINATES, 

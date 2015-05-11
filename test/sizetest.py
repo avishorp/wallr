@@ -44,7 +44,7 @@ for s in TARGET_SIZE:
     if xv > max_val:
         max_val = xv
         max_loc = loc
-        max_target = t
+        max_target = s
     r.append(xv)
     #print "size=%d  value=%f" % (s, xv)
     print "%d  %f (%f,%f)" % (s, xv, loc[0], loc[1])
