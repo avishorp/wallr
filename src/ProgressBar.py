@@ -1,9 +1,12 @@
 import pygame
 
 class ProgressBar(pygame.sprite.Sprite):
-    def __init__(self, width, height, num_divisions = 10, spacing = 3, 
+    def __init__(self, width, height, position, num_divisions = 10, spacing = 3, 
                  inactive_color = (0, 64, 0), active_color = (0, 255, 0),
                  bg_color = (255, 255, 255)):
+
+        pygame.sprite.Sprite.__init__(self)
+
         self.size = (width, height)
         self.num_divisions = 10
         self.spacing = 3
@@ -13,7 +16,11 @@ class ProgressBar(pygame.sprite.Sprite):
 
         self.progress = 0
         self.div = 1.0/self.num_divisions
-        self.bar_width = width / num_divisions - spacing 
+        self.bar_width = width / num_divisions - spacing
+        
+        self.image = pygame.Surface((width, height))
+        self.image.fill(bg_color)
+        self.rect = pygame.Rect(position, (width, height))
 
     def setProgress(self, progress):
         if progress < 0 or progress > 1.0:
@@ -23,10 +30,7 @@ class ProgressBar(pygame.sprite.Sprite):
     def getProgress(self):
         return self.progress
 
-    def draw(self):
-        s = pygame.Surface(self.size)
-        s.fill(self.bg_color)
-        
+    def update(self):
         x = 0
         prg = 0
         for d in range(0, self.num_divisions):
@@ -35,9 +39,8 @@ class ProgressBar(pygame.sprite.Sprite):
             else:
                 clr = self.inactive_color
                 
-            pygame.draw.rect(s, clr, 
+            pygame.draw.rect(self.image, clr, 
                              pygame.Rect(x, 0, self.bar_width, self.size[1]))
             x += self.bar_width + self.spacing
             prg += self.div
 
-        return s

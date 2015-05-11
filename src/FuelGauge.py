@@ -1,26 +1,38 @@
 import pygame
 from WallrResources import RESOURCES
 from animation import Animation
+import time
 
 class FuelGauge(pygame.sprite.Sprite):
     # Animation Types
     ANIMATION_LINEAR = 0
     ANIMATION_EXPONENTIAL = 1
 
-    def __init__(self):
+    def __init__(self, position, bgcolor = (255, 255, 255)):
         pygame.sprite.Sprite.__init__(self)
         
         # Load the fuel gauge and needle images
         #self.gauge = self.image.load(getResFilename("fuel_gauge.png"))
         self.gauge = RESOURCES['fuel_gauge']
         self.needle = RESOURCES['needle']
+
+        self.bgcolor = bgcolor
+        
+        # The sprite is located at a constant position and its size
+        # remains constant as well
+        self.rect = pygame.Rect(position, self.gauge.get_rect().size)
+        self.image = pygame.Surface(self.gauge.get_rect().size)
+        self.image.set_colorkey((255,255,255))
         
         self.setFuelLevel(0)
         self.currentAnimation = None
         self.animations = []
         self.defaultAnimation = None
+        self.update = self.updatex
 
-    def draw(self, now):
+    def updatex(self):
+        now = time.time()
+
         # Apply animation
         if self.currentAnimation is not None:
             # An animation is in effect, let it dictate the fuel level
@@ -39,20 +51,16 @@ class FuelGauge(pygame.sprite.Sprite):
                     self.currentAnimation = self.defaultAnimation
                     self.defaultAnimation.start()
 
-
         # Copy the background image to a new surface
-        r = self.gauge.get_rect()
-        self.surface = pygame.Surface(r.size)
-        self.surface.set_colorkey((255,255,255))
-        self.surface.fill((255,255,255))
-        self.surface.blit(self.gauge.image, (0,0))
+        self.image.fill(self.bgcolor)
+        self.image.blit(self.gauge.image, (0,0))
 
         # Rotate the needle
         n = pygame.transform.rotate(self.needle.image, self.angle)
         
         # Put the needle on the background
         c = self.gauge.image.get_rect().center
-        self.surface.blit(n, (self.gauge.needle_pos[0]-n.get_rect().width,self.gauge.needle_pos[1]-n.get_rect().height))
+        self.image.blit(n, (self.gauge.needle_pos[0]-n.get_rect().width,self.gauge.needle_pos[1]-n.get_rect().height))
 
     def setFuelLevel(self, l):
         if l < 0 or l > 100:

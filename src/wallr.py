@@ -11,22 +11,28 @@ SCREEN_SIZE = (640, 480)
 
 class WallrGame(object):
     def __init__(self):
+        pygame.init()
         self.screen = pygame.display.set_mode(SCREEN_SIZE)
-        pygame.draw.rect(self.screen, BACKGROUND_COLOR, 
-                         pygame.Rect(0, 0, SCREEN_SIZE[0], SCREEN_SIZE[1]))
         
-        self.fuelGauge = FuelGauge()
+        self.background = pygame.Surface(SCREEN_SIZE)
+        self.background.fill(BACKGROUND_COLOR)
+        #pygame.draw.rect(self.background, BACKGROUND_COLOR, 
+        #                 pygame.Rect(0, 0, SCREEN_SIZE[0], SCREEN_SIZE[1]))
+
+        self.fuelGauge = FuelGauge((0,0))
         self.fuelGauge.setFuelLevel(0)
         self.fuelGauge.animateToFuelLevel(100, self.s1, type=FuelGauge.ANIMATION_EXPONENTIAL)
         
-        self.progressBar = ProgressBar(10*13, 30)
+        self.progressBar = ProgressBar(10*13, 30, (200, 280))
         self.progressBar.setProgress(0)
         self.pa = Animation(self.progressBar, self.progressBar.getProgress,
                                  self.progressBar.setProgress, 1.0, rate=10.0,
                                  callback=lambda: sys.stdout.write('ProgressBar animation done\n'))
         self.pa.start()
 
-        self.sprites = pygame.sprite.RenderPlain((self.fuelGauge))
+        self.sprites = pygame.sprite.RenderUpdates()
+        self.sprites.add(self.fuelGauge)
+        self.sprites.add(self.progressBar)
 
     def s1(self):
         sys.stdout.write("Animation 1 done\n")
@@ -37,17 +43,19 @@ class WallrGame(object):
         
     def run(self):
         self.running = True
+
         t0 = time.time()
         x = 0
         flg = False
+
+        self.screen.blit(self.background, (0,0))
+        pygame.display.update()
+
         while self.running:
             event = pygame.event.poll()
             if event.type == pygame.QUIT:
                 self.running = False
 
-            pygame.draw.rect(self.screen, BACKGROUND_COLOR, 
-                         pygame.Rect(0, 0, SCREEN_SIZE[0], SCREEN_SIZE[1]))
-            
             now = time.time()
             if (((now - t0) > 8) and (not flg)):
                 print "+10"
@@ -56,14 +64,14 @@ class WallrGame(object):
                                                   type=FuelGauge.ANIMATION_LINEAR,
                                                   rate=220)
                 flg = True
-            self.fuelGauge.draw(now)
-            self.screen.blit(self.fuelGauge.surface, (0,0))
 
-            p = self.progressBar.draw()
+
             self.pa.nextValue(time.time())
-            self.screen.blit(p, (100,100))
-            #self.sprites.draw(self.screen)
-            pygame.display.flip()
+            
+            self.sprites.update()
+            self.sprites.clear(self.screen, self.background)
+            updates = self.sprites.draw(self.screen)
+            pygame.display.update(updates)
 
 if __name__=='__main__':
     game = WallrGame()
