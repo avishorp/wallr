@@ -1,5 +1,8 @@
+import sys
+sys.path.append('../src')
+
 import pygame, os.path
-import time, sys, math
+import time, math
 from animation import Animation
 from WallrResources import RESOURCES
 from ProgressBar import ProgressBar
