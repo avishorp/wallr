@@ -16,6 +16,7 @@ RESOURCES = {
 
 SETTINGS = {
     'screen_size': (640, 480),
-    'background_color': (255, 255, 255)
+    'background_color': (255, 255, 255),
+    'lock_rect': (640/2-50, 60, 100, 100),
 }
 
