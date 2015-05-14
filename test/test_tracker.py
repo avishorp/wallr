@@ -75,8 +75,8 @@ class DebugTracker(tracker.Tracker):
                                 color=[255, 255, 0])
                     cv2.rectangle(imgdisp, (0,0), (self.target_size,self.target_size), color=[255,0,0])
 
-                    cv2.imshow('tracker', imgdisp)
-                    cv2.imshow('matches', self.matches)
+            cv2.imshow('tracker', imgdisp)
+            cv2.imshow('matches', self.matches)
         self.nFrames += 1
             
         if (cv2.getTickCount() - self.t) > self.sec:
