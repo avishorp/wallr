@@ -18,6 +18,9 @@ class DebugTracker(tracker.Tracker):
         }
 
     def __init__(self, targetCls, show_image, input_file, output_file):
+        self.t0 = time.time()
+        self.log_file = open('tracker.log', 'wb')
+
         super(DebugTracker, self).__init__(targetCls, self.cblog)
         self.t = cv2.getTickCount()
         self.sec = cv2.getTickFrequency()
@@ -26,42 +29,52 @@ class DebugTracker(tracker.Tracker):
         self.input_file = input_file
         self.output_file = output_file
 
+
+
     def cblog(self, msg, param):
+        d = time.time() - self.t0
+        log_format = [("%f",d),("%d",msg)]
+
         s = "Tracker Message: %s" % self.messages[msg]
         if (msg == tracker.MSG_LOCK_PROGRESS):
             s += " (progress: %f)" % param
+            log_format.append(("%f", param))
         if (msg == tracker.MSG_COORDINATES):
             s += " (x=%d, y=%d)" % (param['x'], param['y'])
+            log_format.append(("%f", param['x']))
+            log_format.append(("%f", param['y']))
 
         print s
+        self.log_file.write((','.join([s[0] for s in log_format])+'\n') %
+                            tuple([s[1] for s in log_format]))
 
     def onFrame(self, nFrame, iimg, pimg):
         super(DebugTracker, self).onFrame(nFrame, iimg, pimg)
-            
-        imgdisp = cv2.cvtColor(pimg, cv2.cv.CV_GRAY2RGB)
-        #imgdisp = cv2.cvtColor(self.m, cv2.cv.CV_GRAY2RGB)
-
-        # Draw the tracking window
-        cv2.rectangle(imgdisp, (self.window.xleft, self.window.ytop),
-                      (self.window.xright, self.window.ybottom), color=[0,0,255])
-
-        if self.state == tracker.TRK_STATE_ACQUIRE:
-            statetxt = "ACK"
-                
-            for d in self.lastDetections:
-                self.crosshair(imgdisp, d[0], color=[0,255,0])
-        else:
-            statetxt = "LOCK"
-            self.crosshair(imgdisp, self.detectionPoint, color=[0,0,255])
-            
-
-        cv2.putText(imgdisp, text=statetxt, org=(8,50), 
-                    fontFace=cv2.FONT_HERSHEY_PLAIN, 
-                    fontScale=3, 
-                    color=[255, 255, 0])
-        cv2.rectangle(imgdisp, (0,0), (tracker.TARGET_SIZE,tracker.TARGET_SIZE), color=[255,0,0])
 
         if self.show_image:
+            imgdisp = cv2.cvtColor(pimg, cv2.cv.CV_GRAY2RGB)
+            #imgdisp = cv2.cvtColor(self.m, cv2.cv.CV_GRAY2RGB)
+
+            # Draw the tracking window
+            cv2.rectangle(imgdisp, (self.window.xleft, self.window.ytop),
+                          (self.window.xright, self.window.ybottom), color=[0,0,255])
+
+            if self.state == tracker.TRK_STATE_ACQUIRE:
+                statetxt = "ACK"
+                
+                for d in self.lastDetections:
+                    self.crosshair(imgdisp, d[0], color=[0,255,0])
+            else:
+                    statetxt = "LOCK"
+                    self.crosshair(imgdisp, self.detectionPoint, color=[0,0,255])
+            
+
+                    cv2.putText(imgdisp, text=statetxt, org=(8,50), 
+                                fontFace=cv2.FONT_HERSHEY_PLAIN, 
+                                fontScale=3, 
+                                color=[255, 255, 0])
+                    cv2.rectangle(imgdisp, (0,0), (self.target_size,self.target_size), color=[255,0,0])
+
             cv2.imshow('tracker', imgdisp)
             cv2.imshow('matches', self.matches)
         self.nFrames += 1

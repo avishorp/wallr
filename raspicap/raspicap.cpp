@@ -31,11 +31,13 @@
 #define DEFAULT_VIDEO_FPS 30 
 #define DEFAULT_VIDEO_WIDTH 1280
 #define DEFAULT_VIDEO_HEIGHT 720
+#define DEFAULT_SENSOR_MODE 0
 
 typedef struct {
     int width;
     int height;
     int fps;
+  int sensor_mode;
     
     MMAL_COMPONENT_T *camera;
     MMAL_COMPONENT_T *encoder;
@@ -273,6 +275,14 @@ int setup_camera(PORT_USERDATA *userdata) {
     camera_video_port->userdata = (struct MMAL_PORT_USERDATA_T *) userdata;
 
 
+   status = mmal_port_parameter_set_uint32(camera->control, MMAL_PARAMETER_CAMERA_CUSTOM_SENSOR_CONFIG, g_userdata->sensor_mode);
+
+   if (status != MMAL_SUCCESS)
+   {
+     sprintf(g_error_message, "Could not set sensor mode : error %d", status);
+     return -1;
+   }
+
     status = mmal_port_enable(camera_video_port, camera_video_buffer_callback);
 
     if (status != MMAL_SUCCESS) {
@@ -392,7 +402,7 @@ void init_userdata(PORT_USERDATA& ud) {
 
 static PyObject* g_raspicap_error;
 static char* g_setup_keywords[] = {
-  "width", "height", "fps", NULL
+  "width", "height", "fps", "mode", NULL
 };
 
 
@@ -404,12 +414,13 @@ static PyObject * py_setup(PyObject *self, PyObject *args, PyObject* kwds)
 
   g_userdata->width = DEFAULT_VIDEO_WIDTH;
   g_userdata->height = DEFAULT_VIDEO_HEIGHT;
-  g_userdata->fps = DEFAULT_VIDEO_FPS;    
+  g_userdata->fps = DEFAULT_VIDEO_FPS;
+  g_userdata->sensor_mode = DEFAULT_SENSOR_MODE;
 
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iii", g_setup_keywords,
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "|iiii", g_setup_keywords,
 				   &g_userdata->width, &g_userdata->height, 
-				   &g_userdata->fps))
+				   &g_userdata->fps, &g_userdata->sensor_mode))
     return NULL;
 
 
