@@ -1,10 +1,15 @@
 import sys, time, os
-import TrackerLogPlayer as tracker
 import pygame, Queue
 from WallrResources import RESOURCES, SETTINGS
 from ProgressBar import ProgressBar
 from FuelGauge import FuelGauge
 
+SIMULATE_TRACKER = False
+
+if SIMULATE_TRACKER:
+    import TrackerLogPlayer as tracker
+else:
+    import tracker, target
 
 class WallrLockMode(object):
     def __init__(self, screen, background):
@@ -135,13 +140,16 @@ class WallrMain(object):
         # Instantiate a tracker and connect it to the
         # local callback
         self.trkMessages = Queue.Queue()
-        self.trk = tracker.TrackerLogPlayer('tracker.log', self.trackerCallback)
+        if SIMULATE_TRACKER:
+            self.trk = tracker.TrackerLogPlayer('tracker.log', self.trackerCallback)
+        else:
+            self.trk = tracker.Tracker(target.TrackingTarget, self.trackerCallback)
         self.trk.start()
 
 
         # Initialize PyGame and create a screen and a background
         pygame.init()
-        self.init_display()
+        self.init_display(force_fullscreen = True)
         self.screen = pygame.display.set_mode(SETTINGS['screen_size'])
         self.background = pygame.Surface(SETTINGS['screen_size'])
         self.background.fill(SETTINGS['background_color'])
@@ -151,12 +159,12 @@ class WallrMain(object):
 
         self.create()
 
-    def init_display(self):
+    def init_display(self, force_fullscreen = False):
         "Ininitializes a new pygame screen using the framebuffer"
         # Based on "Python GUI in Linux frame buffer"
         # http://www.karoltomala.com/blog/?p=679
         disp_no = os.getenv("DISPLAY")
-        if disp_no:
+        if disp_no and not force_fullscreen:
             print "I'm running under X display = {0}".format(disp_no)
         else:
             # Check which frame buffer drivers are available

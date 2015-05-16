@@ -31,6 +31,7 @@ class TrackerLogPlayer(threading.Thread):
             # Wait until the appropriate time arrives
             atime = t0 + rtime
             while time.time() < atime:
+                time.sleep(0.005)
                 pass
 
             params = None
