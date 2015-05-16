@@ -3,7 +3,9 @@ from target import TrackingTarget
 import numpy, threading, Queue, ast
 import time
 import trkutil
-import WallrSettings, WallrVideo
+import WallrSettings
+#import WallrVideo
+import WallrVideoV4L as WallrVideo
 
 # Tracking states
 TRK_STATE_ACQUIRE = 0
