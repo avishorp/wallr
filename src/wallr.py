@@ -4,53 +4,8 @@ import pygame, Queue
 from WallrResources import RESOURCES, SETTINGS
 from ProgressBar import ProgressBar
 from FuelGauge import FuelGauge
-
-
-class StaticSprite(pygame.sprite.Sprite):
-    def __init__(self, image, position):
-        pygame.sprite.Sprite.__init__(self)
-
-        self.image = image
-        self.setPosition(position)
-
-    def setPosition(self, pos):
-        self.rect = pygame.Rect(pos, self.image.get_size())
-
-class TrafficLights(pygame.sprite.Sprite):
-    def __init__(self, position, dt = [2, 2, 0.8]):
-        pygame.sprite.Sprite.__init__(self)
-        self.img = [
-            RESOURCES['red'].image,
-            RESOURCES['red_yellow'].image,
-            RESOURCES['green'].image
-            ]
-        self.rect = pygame.Rect(position, self.img[0].get_size())
-        self.dt = dt
-        self.state = 0
-    
-    def start(self):
-        self.t0 = time.time()
-        self.image = self.img[0]
-        self.active = True
-        self.state = 0
-
-    def update(self):
-        if not self.active:
-            return None
-
-        t = time.time()
-        t0 = self.t0
-
-        if ((t - t0) > self.dt[self.state]):
-            # Next state
-            self.t0 = t
-            self.state += 1
-
-            if self.state > 2:
-                self.active = False
-                self.kill()
-            else:
-                self.image = self.img[self.state]
+from TrafficLights import TrafficLights
+from StaticSprite import StaticSprite
 
 class WallrLockMode(object):
     def __init__(self, screen, background):
