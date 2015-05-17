@@ -15,6 +15,7 @@ RESOURCES = {
     'red': GameResource.ImageResource('tl_red.png'),
     'red_yellow': GameResource.ImageResource('tl_red_yellow.png'),
     'green': GameResource.ImageResource('tl_green.png'),
+    'clock_font': GameResource.Resource('DS-DIGI.TTF')
 }
 
 SETTINGS = {

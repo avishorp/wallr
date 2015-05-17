@@ -1,9 +1,8 @@
 import pygame, time
 from WallrResources import RESOURCES
 
-
 class TrafficLights(pygame.sprite.Sprite):
-    def __init__(self, position, dt = [1.5, 1.5, 0.5]):
+    def __init__(self, position, dt = [1.5, 1.5, 0.5], callback = None):
         pygame.sprite.Sprite.__init__(self)
         self.img = [
             RESOURCES['red'].image,
@@ -13,6 +12,7 @@ class TrafficLights(pygame.sprite.Sprite):
         self.rect = pygame.Rect(position, self.img[0].get_size())
         self.dt = dt
         self.state = 0
+        self.callback = callback
     
     def start(self):
         self.t0 = time.time()
@@ -35,5 +35,7 @@ class TrafficLights(pygame.sprite.Sprite):
             if self.state > 2:
                 self.active = False
                 self.kill()
+                if self.callback is not None:
+                    self.callback()
             else:
                 self.image = self.img[self.state]
