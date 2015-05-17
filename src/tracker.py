@@ -50,6 +50,7 @@ class Tracker(threading.Thread):
         # Initialize the camera
         self.vsource = WallrVideo.WallrVideo(WallrSettings.settings.video)
         self.vsource.setup()
+        self.vsource.start()
 
     def setAcquireRectangle(self, top_left, bottom_right):
         print 'set search rect'
@@ -107,6 +108,7 @@ class Tracker(threading.Thread):
     def terminate(self):
         self.running = False
         self.join()
+        self.vsource.terminate()
         print "Tracker terminated"
 
     def run(self):

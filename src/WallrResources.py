@@ -11,7 +11,11 @@ RESOURCES = {
                                 keycolor = (255,255,255),
                                 needle_pos = (132, 137)),
     'needle': GameResource.ImageResource('needle.png', 
-                            center = (105, 4), keycolor = (255, 255, 255))
+                            center = (105, 4), keycolor = (255, 255, 255)),
+    'red': GameResource.ImageResource('tl_red.png'),
+    'red_yellow': GameResource.ImageResource('tl_red_yellow.png'),
+    'green': GameResource.ImageResource('tl_green.png'),
+    'clock_font': GameResource.Resource('DS-DIGI.TTF')
 }
 
 SETTINGS = {

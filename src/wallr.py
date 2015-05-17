@@ -1,9 +1,14 @@
-import sys, time, os
+import sys, time, os, signal
+import TrackerLogPlayer as tracker
 import pygame, Queue
 from WallrResources import RESOURCES, SETTINGS
 import WallrSettings, ast
 from ProgressBar import ProgressBar
 from FuelGauge import FuelGauge
+from TrafficLights import TrafficLights
+from StaticSprite import StaticSprite
+from Clock import Clock
+
 
 SIMULATE_TRACKER = False
 FORCE_FULLSCREEN = False
@@ -42,6 +47,7 @@ class CoordinateTranslator(object):
         return (tx, ty)
 
 trx = CoordinateTranslator()
+
 
 class WallrLockMode(object):
     def __init__(self, screen, background):
@@ -117,22 +123,33 @@ class WallrGameMode(object):
 
     def create(self):
         self.fuelGauge = FuelGauge((0,0))
-        self.widgets = pygame.sprite.RenderUpdates([self.fuelGauge])
+        self.traffic_light = TrafficLights((500,30),
+                                           callback = self.resume_play)
+        self.traffic_light.start()
+        self.clock = Clock((10, 150))
+        self.widgets = pygame.sprite.RenderUpdates([
+            self.fuelGauge,
+            self.traffic_light,
+            self.clock])
         self.location = None
         self.prevLocation = None
           
     def pause(self):
-        pass
+        self.clock.pause()
 
     def resume(self):
         print "Resume game"
+        self.widgets.add(self.traffic_light)
+        self.traffic_light.start()
         self.screen.blit(self.background, (0,0))
         pygame.display.update()
 
         self.active = True
 
+    def resume_play(self):
+        self.clock.resume()
+
     def trackerMessage(self, msg, param):
-        print "WallrGame trackerMessage"
         if msg == tracker.MSG_SWITCH_TO_ACQ:
             print "Switch back"
             self.active = False
@@ -145,6 +162,12 @@ class WallrGameMode(object):
             return False
 
         updates = []
+
+        # Update and draw the widgets
+        self.widgets.update()
+        self.widgets.clear(self.screen, self.background)
+        updates = self.widgets.draw(self.screen)
+
         while len(self.clear) > 0:
             r = self.clear.pop()
             pygame.draw.rect(self.screen, (255,255,255), r, 0)
@@ -155,7 +178,9 @@ class WallrGameMode(object):
             updates.append(r)
             self.clear.append(r)
 
+
         pygame.display.update(updates)
+
         return True
 
 
@@ -170,6 +195,8 @@ class WallrMain(object):
     MODE_GAME = 1
 
     def __init__(self):
+        signal.signal(signal.SIGINT, self.terminate)
+
         self.mode = WallrMain.MODE_LOCK
 
         # Instantiate a tracker and connect it to the
@@ -183,9 +210,9 @@ class WallrMain(object):
             # search window position
             self.trk = tracker.Tracker(target.TrackingTarget, self.trackerCallback)
             w = ast.literal_eval(WallrSettings.settings.display['lock rect'])
-            self.trk.setAcquireRectangle(
-                trx.screen_to_tracker((w[0], w[1])),
-                trx.screen_to_tracker((w[2], w[3])))
+            #self.trk.setAcquireRectangle(
+            #    trx.screen_to_tracker((w[0], w[1])),
+            #    trx.screen_to_tracker((w[2], w[3])))
 
         # Start the tracker
         self.trk.start()
@@ -201,6 +228,14 @@ class WallrMain(object):
         self.modeGame = WallrGameMode(self.screen, self.background)
 
         self.create()
+
+    def terminate(self, sig, frm):
+        print "Terminating"
+        self.running = False
+        self.trk.terminate()
+        self.trk.join()
+        pygame.display.quit()
+        sys.exit(0)
 
     def init_display(self):
         "Ininitializes a new pygame screen using the framebuffer"

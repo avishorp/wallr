@@ -20,7 +20,11 @@ class TrackerLogPlayer(threading.Thread):
         
         self.log = open(logfile, 'r')
         self.cb = cb
-        
+        self.running = True
+
+    def terminate(self):
+        self.running = False
+
     def run(self):
         t0 = time.time()
         for l in self.log:
@@ -31,8 +35,10 @@ class TrackerLogPlayer(threading.Thread):
             # Wait until the appropriate time arrives
             atime = t0 + rtime
             while time.time() < atime:
-                time.sleep(0.005)
-                pass
+                if not self.running:
+                    return None
+                else:
+                    time.sleep(0.005)
 
             params = None
             if message == MSG_LOCK_PROGRESS:
