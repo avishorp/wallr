@@ -1,15 +1,47 @@
 import sys, time, os
 import pygame, Queue
 from WallrResources import RESOURCES, SETTINGS
+import WallrSettings, ast
 from ProgressBar import ProgressBar
 from FuelGauge import FuelGauge
 
 SIMULATE_TRACKER = False
+FORCE_FULLSCREEN = False
 
 if SIMULATE_TRACKER:
     import TrackerLogPlayer as tracker
 else:
     import tracker, target
+
+class CoordinateTranslator(object):
+    def __init__(self):
+        st = WallrSettings.settings
+        top_left = ast.literal_eval(st.calibration['top left'])
+        bottom_right = ast.literal_eval(st.calibration['bottom right'])
+        self.disp_width = int(st.display['width'])
+        self.disp_height = int(st.display['height'])
+        
+        self.xa, self.xb = self.calc_ab(top_left[0], bottom_right[0], 0, self.disp_width)
+        self.ya, self.yb = self.calc_ab(top_left[1], bottom_right[1], 0, self.disp_height)
+
+    def calc_ab(self, from_min, from_max, to_min, to_max):
+        a = (to_min - to_max)*1.0/(from_min - from_max)
+        b = to_min - a*from_min
+        return (a,b)
+    
+    def tracker_to_screen(self, pos):
+        tx = int(self.xa*pos[0] + self.xb)
+        tx = max(0, min(tx, self.disp_width))
+        ty = int(self.ya*pos[1] + self.yb)
+        ty = max(0, min(ty, self.disp_height))
+        return (tx, ty)
+
+    def screen_to_tracker(self, pos):
+        tx = int((pos[0] - self.xb) / self.xa)
+        ty = int((pos[1] - self.yb) / self.ya)
+        return (tx, ty)
+
+trx = CoordinateTranslator()
 
 class WallrLockMode(object):
     def __init__(self, screen, background):
@@ -25,8 +57,11 @@ class WallrLockMode(object):
         # Clear the screen
         self.image.blit(self.background, (0,0))
         # Draw the "lock rectangle"
-        pygame.draw.rect(self.image, (255,0,0),
-                         pygame.Rect(SETTINGS['lock_rect']), 10)
+        lock_rect = ast.literal_eval(WallrSettings.settings.display['lock rect'])
+        pygame.draw.rect(self.image, (255,0,0), pygame.Rect(
+                (lock_rect[0], lock_rect[1]), 
+                (lock_rect[2]-lock_rect[0], lock_rect[3]-lock_rect[1])), 10)
+
         # Draw the text
         fontname = pygame.font.match_font('sans')
         font = pygame.font.Font(fontname, 34)
@@ -103,7 +138,7 @@ class WallrGameMode(object):
             self.active = False
         if msg == tracker.MSG_COORDINATES:
             self.prevLocation = self.location
-            self.location = (int(param['x'])/2, int(param['y'])/2)
+            self.location = trx.tracker_to_screen((param['x'], param['y']))
         
     def loop(self):
         if not self.active:
@@ -141,15 +176,23 @@ class WallrMain(object):
         # local callback
         self.trkMessages = Queue.Queue()
         if SIMULATE_TRACKER:
+            # Initialize the simulation tracker
             self.trk = tracker.TrackerLogPlayer('tracker.log', self.trackerCallback)
         else:
+            # Initialize the tracker, and set the (calibrated) initial
+            # search window position
             self.trk = tracker.Tracker(target.TrackingTarget, self.trackerCallback)
-        self.trk.start()
+            w = ast.literal_eval(WallrSettings.settings.display['lock rect'])
+            self.trk.setAcquireRectangle(
+                trx.screen_to_tracker((w[0], w[1])),
+                trx.screen_to_tracker((w[2], w[3])))
 
+        # Start the tracker
+        self.trk.start()
 
         # Initialize PyGame and create a screen and a background
         pygame.init()
-        self.init_display(force_fullscreen = True)
+        self.init_display()
         self.screen = pygame.display.set_mode(SETTINGS['screen_size'])
         self.background = pygame.Surface(SETTINGS['screen_size'])
         self.background.fill(SETTINGS['background_color'])
@@ -159,12 +202,12 @@ class WallrMain(object):
 
         self.create()
 
-    def init_display(self, force_fullscreen = False):
+    def init_display(self):
         "Ininitializes a new pygame screen using the framebuffer"
         # Based on "Python GUI in Linux frame buffer"
         # http://www.karoltomala.com/blog/?p=679
         disp_no = os.getenv("DISPLAY")
-        if disp_no and not force_fullscreen:
+        if disp_no and not FORCE_FULLSCREEN:
             print "I'm running under X display = {0}".format(disp_no)
         else:
             # Check which frame buffer drivers are available

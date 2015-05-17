@@ -51,6 +51,16 @@ class Tracker(threading.Thread):
         self.vsource = WallrVideo.WallrVideo(WallrSettings.settings.video)
         self.vsource.setup()
 
+    def setAcquireRectangle(self, top_left, bottom_right):
+        print 'set search rect'
+        tl = (min(top_left[0], bottom_right[0]),min(top_left[1], bottom_right[1]))
+        br = (max(top_left[0], bottom_right[0]),max(top_left[1], bottom_right[1]))
+        print tl
+        print br
+
+        self.search_win = trkutil.Rectangle(tl[0], tl[1],
+                                            br[0], br[1])
+        
     def switchToAcquire(self):
         self.state = TRK_STATE_ACQUIRE
         self.lastDetections = []
