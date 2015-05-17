@@ -6,6 +6,52 @@ from ProgressBar import ProgressBar
 from FuelGauge import FuelGauge
 
 
+class StaticSprite(pygame.sprite.Sprite):
+    def __init__(self, image, position):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image = image
+        self.setPosition(position)
+
+    def setPosition(self, pos):
+        self.rect = pygame.Rect(pos, self.image.get_size())
+
+class TrafficLights(pygame.sprite.Sprite):
+    def __init__(self, position, dt = [2, 2, 0.8]):
+        pygame.sprite.Sprite.__init__(self)
+        self.img = [
+            RESOURCES['red'].image,
+            RESOURCES['red_yellow'].image,
+            RESOURCES['green'].image
+            ]
+        self.rect = pygame.Rect(position, self.img[0].get_size())
+        self.dt = dt
+        self.state = 0
+    
+    def start(self):
+        self.t0 = time.time()
+        self.image = self.img[0]
+        self.active = True
+        self.state = 0
+
+    def update(self):
+        if not self.active:
+            return None
+
+        t = time.time()
+        t0 = self.t0
+
+        if ((t - t0) > self.dt[self.state]):
+            # Next state
+            self.t0 = t
+            self.state += 1
+
+            if self.state > 2:
+                self.active = False
+                self.kill()
+            else:
+                self.image = self.img[self.state]
+
 class WallrLockMode(object):
     def __init__(self, screen, background):
         self.screen = screen
@@ -77,7 +123,9 @@ class WallrGameMode(object):
 
     def create(self):
         self.fuelGauge = FuelGauge((0,0))
-        self.widgets = pygame.sprite.RenderUpdates([self.fuelGauge])
+        self.traffic_light = TrafficLights((500,30))
+        self.traffic_light.start()
+        self.widgets = pygame.sprite.RenderUpdates([self.fuelGauge,self.traffic_light])
         self.location = None
         self.prevLocation = None
           
@@ -86,6 +134,8 @@ class WallrGameMode(object):
 
     def resume(self):
         print "Resume game"
+        self.widgets.add(self.traffic_light)
+        self.traffic_light.start()
         self.screen.blit(self.background, (0,0))
         pygame.display.update()
 
@@ -105,6 +155,12 @@ class WallrGameMode(object):
             return False
 
         updates = []
+
+        # Update and draw the widgets
+        self.widgets.update()
+        self.widgets.clear(self.screen, self.background)
+        updates = self.widgets.draw(self.screen)
+
         while len(self.clear) > 0:
             r = self.clear.pop()
             pygame.draw.rect(self.screen, (255,255,255), r, 0)
@@ -115,7 +171,9 @@ class WallrGameMode(object):
             updates.append(r)
             self.clear.append(r)
 
+
         pygame.display.update(updates)
+
         return True
 
 
