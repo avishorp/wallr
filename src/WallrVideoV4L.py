@@ -15,6 +15,9 @@ class WallrVideo(threading.Thread):
         self.fps = int(settings.fps)
 
         self.cap = cv2.VideoCapture(0)
+        if not self.cap.isOpened():
+            raise Exception("Failed opening video capture device")
+
         self.queue = Queue.Queue(1)
         self.running = True
 
@@ -23,10 +26,11 @@ class WallrVideo(threading.Thread):
         self.join()
 
     def run(self):
+        n = 0
         while self.running:
             ret, img = self.cap.read()
             if ret and (self.queue.qsize() == 0):
-                print "frame"
+                n = n + 1
                 imggray = cv2.cvtColor(img, cv2.cv.CV_RGB2GRAY)
                 self.queue.put(imggray)
             else:
@@ -45,4 +49,5 @@ class WallrVideo(threading.Thread):
     def setup(self):
         self.cap.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, self.width)
         self.cap.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, self.height)
+        self.cap.set(cv2.cv.CV_CAP_PROP_FPS, 30)
 

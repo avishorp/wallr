@@ -22,6 +22,12 @@ class WallrVideo(object):
         self.next_frame = raspicap.next_frame
         self.next_frame_block = raspicap.next_frame_block
 
+    def start(self):
+        pass
+
+    def terminate(self):
+        pass
+
     def setup(self):
         raspicap.setup(width=self.width, height=self.height, fps=self.fps)
         #raspicap.set_param(roi=self.roi)

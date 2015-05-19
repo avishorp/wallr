@@ -4,8 +4,8 @@ import numpy, threading, Queue, ast
 import time
 import trkutil
 import WallrSettings
-#import WallrVideo
-import WallrVideoV4L as WallrVideo
+import WallrVideo
+#import WallrVideoV4L as WallrVideo
 
 # Tracking states
 TRK_STATE_ACQUIRE = 0
@@ -20,12 +20,13 @@ MSG_LOCK_PROGRESS  = 3 # A number between 0 to 100 designating the acquisition p
 
 class Tracker(threading.Thread):
 
-    def __init__(self, targetCls, callback):
+    def __init__(self, targetCls, callback, force_lock = False):
         super(Tracker, self).__init__()
         
         self.running = False
         self.callback = callback
-
+        self.force_lock = force_lock
+        
         # Get tracker settings from settings file
         st = WallrSettings.settings.tracker
         self.target_size = int(st['target size'])
@@ -46,7 +47,9 @@ class Tracker(threading.Thread):
         self.nFrame = 0
         self.reset = self.switchToAcquire
         self.reset()
-
+        if self.force_lock:
+            self.switchToLocked((400, 400), 0.5)
+        
         # Initialize the camera
         self.vsource = WallrVideo.WallrVideo(WallrSettings.settings.video)
         self.vsource.setup()
@@ -201,7 +204,8 @@ class Tracker(threading.Thread):
                 
                 if self.failCount == 0:
                     # Too many failures, switch back to acquisition
-                    self.switchToAcquire()
+                    if not self.force_lock:
+                        self.switchToAcquire()
 
     
     def stddev(self, points):
