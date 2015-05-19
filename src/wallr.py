@@ -53,7 +53,7 @@ class WallrLockMode(object):
             print "Deactivating lock"
             self.active = False
 
-    def loop(self):
+    def loop(self, ev):
         if not self.active:
             return False
             
@@ -66,24 +66,40 @@ class WallrLockMode(object):
         return True
 
 class WallrGameMode(object):
-    MODE_RED = 0
-    MODE_YELLOW = 1
-    MODE_GREEN = 2
-    MODE_PLAY = 3
+    STATE_START = 0 
+    STATE_WAIT = 1
+    STATE_PLAY = 2
+    STATE_OVER = 3
 
     def __init__(self, screen, background):
         self.screen = screen
         self.background = background
-        self.mode = WallrGameMode.MODE_RED
+        self.state = WallrGameMode.STATE_START
         self.clear = []
 
     def create(self):
+        # Start Screen
+        ##############
+        # "Press START to begin"
+        fontname = pygame.font.match_font('sans')
+        font = pygame.font.Font(fontname, 50)
+        text = "Press START to begin"
+        textimg = font.render(text, True, (0,0,0))
+        textspr = StaticSprite(textimg, center(textimg, 200))
+        # Logo
+        logo = RESOURCES['logo']
+        logospr = StaticSprite(logo.image, center(logo.image, 320))
+        self.startScreenSprites = pygame.sprite.RenderUpdates(
+            [ textspr, logospr ])
+
+        # Game Screen
+        #############
         self.fuelGauge = FuelGauge((0,0))
         self.traffic_light = TrafficLights((500,30),
                                            callback = self.resume_play)
         self.traffic_light.start()
         self.clock = Clock((10, 150))
-        self.widgets = pygame.sprite.RenderUpdates([
+        self.gameScreenSprites = pygame.sprite.RenderUpdates([
             self.fuelGauge,
             self.traffic_light,
             self.clock])
@@ -92,10 +108,11 @@ class WallrGameMode(object):
           
     def pause(self):
         self.clock.pause()
+        self.fuelGauge.pause()
 
     def resume(self):
         print "Resume game"
-        self.widgets.add(self.traffic_light)
+        self.gameScreenSprites.add(self.traffic_light)
         self.traffic_light.start()
         self.screen.blit(self.background, (0,0))
         pygame.display.update()
@@ -104,6 +121,7 @@ class WallrGameMode(object):
 
     def resume_play(self):
         self.clock.resume()
+        self.fuelGauge.resume()
 
     def trackerMessage(self, msg, param):
         if msg == tracker.MSG_SWITCH_TO_ACQ:
@@ -113,16 +131,35 @@ class WallrGameMode(object):
             self.prevLocation = self.location
             self.location = (int(param['x'])/2, int(param['y'])/2)
         
-    def loop(self):
+    def loop(self, ev):
         if not self.active:
             return False
 
         updates = []
 
-        # Update and draw the widgets
-        self.widgets.update()
-        self.widgets.clear(self.screen, self.background)
-        updates = self.widgets.draw(self.screen)
+        if self.state == WallrGameMode.STATE_START:
+            # Draw the start screen sprites
+            self.startScreenSprites.update()
+            self.startScreenSprites.clear(self.screen, self.background)
+            updates = self.startScreenSprites.draw(self.screen)
+
+            # Check if the key has been pressed, and switch to
+            # play mode if so
+            if ev.type == pygame.KEYDOWN:
+                # Start the game
+                self.state = WallrGameMode.STATE_PLAY
+                self.fuelGauge.fillTank( 
+                        lambda: self.fuelGauge.setConstantRate(5, self.outOfFuel))
+                self.gameScreenSprites.add(self.traffic_light)
+                self.traffic_light.start()
+                self.screen.blit(self.background, (0,0))
+                
+
+        elif (self.state == WallrGameMode.STATE_WAIT) or (self.state == WallrGameMode.STATE_PLAY):
+            # Update and draw the widgets
+            self.gameScreenSprites.update()
+            self.gameScreenSprites.clear(self.screen, self.background)
+            updates = self.gameScreenSprites.draw(self.screen)
 
         while len(self.clear) > 0:
             r = self.clear.pop()
@@ -134,11 +171,12 @@ class WallrGameMode(object):
             updates.append(r)
             self.clear.append(r)
 
-
         pygame.display.update(updates)
 
         return True
-
+        
+    def outOfFuel(self):
+        print "Out of fuel"
 
 # This is the main game class for Wallr.
 # The main class implements the two major modes:
@@ -169,6 +207,8 @@ class WallrMain(object):
         self.background = pygame.Surface(SETTINGS['screen_size'])
         self.background.fill(SETTINGS['background_color'])
         
+        globals()['center'] = lambda img, y: (self.screen.get_rect().width/2-img.get_rect().width/2, y)
+
         self.modeLock = WallrLockMode(self.screen, self.background)
         self.modeGame = WallrGameMode(self.screen, self.background)
 
@@ -184,7 +224,7 @@ class WallrMain(object):
 
     def init_display(self):
         "Ininitializes a new pygame screen using the framebuffer"
-        # Based on "Python GUI in Linux frame buffer"
+        # Based on "Python GUI in Linux framer buffer"
         # http://www.karoltomala.com/blog/?p=679
         disp_no = os.getenv("DISPLAY")
         if disp_no:
@@ -234,7 +274,7 @@ class WallrMain(object):
                 m = self.trkMessages.get()
                 cm.trackerMessage(*m)
 
-            if not cm.loop():
+            if not cm.loop(event):
                 print "Switch mode"
                 # Switch mode
                 cm.pause()

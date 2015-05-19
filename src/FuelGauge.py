@@ -10,7 +10,9 @@ class FuelGauge(pygame.sprite.Sprite):
 
     def __init__(self, position, bgcolor = (255, 255, 255)):
         pygame.sprite.Sprite.__init__(self)
-        
+
+        self.paused = False
+
         # Load the fuel gauge and needle images
         #self.gauge = self.image.load(getResFilename("fuel_gauge.png"))
         self.gauge = RESOURCES['fuel_gauge']
@@ -31,6 +33,8 @@ class FuelGauge(pygame.sprite.Sprite):
         self.update = self.updatex
 
     def updatex(self):
+        if self.paused:
+            return
         now = time.time()
 
         # Apply animation
@@ -104,3 +108,17 @@ class FuelGauge(pygame.sprite.Sprite):
 
     def update(self):
         pass
+
+    def pause(self):
+        self.paused = True
+        if self.currentAnimation is not None:
+            self.currentAnimation.pause()
+
+    def resume(self):
+        print "resume **************************************"
+        self.paused = False
+        if self.currentAnimation is not None:
+            self.currentAnimation.resume()
+
+    def fillTank(self, cb):
+        self.animateToFuelLevel(100, cb, type=FuelGauge.ANIMATION_EXPONENTIAL)
