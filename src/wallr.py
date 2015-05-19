@@ -210,9 +210,9 @@ class WallrMain(object):
             # search window position
             self.trk = tracker.Tracker(target.TrackingTarget, self.trackerCallback)
             w = ast.literal_eval(WallrSettings.settings.display['lock rect'])
-            #self.trk.setAcquireRectangle(
-            #    trx.screen_to_tracker((w[0], w[1])),
-            #    trx.screen_to_tracker((w[2], w[3])))
+            self.trk.setAcquireRectangle(
+                trx.screen_to_tracker((w[0], w[1])),
+                trx.screen_to_tracker((w[2], w[3])))
 
         # Start the tracker
         self.trk.start()
