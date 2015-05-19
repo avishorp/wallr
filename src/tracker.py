@@ -20,7 +20,7 @@ MSG_LOCK_PROGRESS  = 3 # A number between 0 to 100 designating the acquisition p
 
 class Tracker(threading.Thread):
 
-    def __init__(self, targetCls, callback, force_lock = False):
+    def __init__(self, callback, targetCls=None, force_lock = False):
         super(Tracker, self).__init__()
         
         self.running = False

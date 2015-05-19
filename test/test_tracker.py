@@ -17,18 +17,18 @@ class DebugTracker(tracker.Tracker):
         tracker.MSG_LOCK_PROGRESS: 'LOCK_PROGRESS'
         }
 
-    def __init__(self, targetCls, show_image, input_file, output_file):
+    def __init__(self, targetCls, show_image, input_file, output_file, force_lock):
         self.t0 = time.time()
         self.log_file = open('tracker.log', 'wb')
 
-        super(DebugTracker, self).__init__(targetCls, self.cblog)
-        self.t = cv2.getTickCount()
-        self.sec = cv2.getTickFrequency()
+        super(DebugTracker, self).__init__(self.cblog, targetCls, force_lock)
+        self.t = time.time()
+        self.sec = 5
         self.nFrames = 0
+        self.tproc_total = 0
         self.show_image = show_image
         self.input_file = input_file
         self.output_file = output_file
-
 
 
     def cblog(self, msg, param):
@@ -49,7 +49,10 @@ class DebugTracker(tracker.Tracker):
                             tuple([s[1] for s in log_format]))
 
     def onFrame(self, nFrame, iimg, pimg):
+        tf0 = time.time()
         super(DebugTracker, self).onFrame(nFrame, iimg, pimg)
+        tproc = time.time() - tf0
+        self.tproc_total += tproc
 
         if self.show_image:
             imgdisp = cv2.cvtColor(pimg, cv2.cv.CV_GRAY2RGB)
@@ -78,12 +81,15 @@ class DebugTracker(tracker.Tracker):
             cv2.imshow('tracker', imgdisp)
             cv2.imshow('matches', self.matches)
         self.nFrames += 1
-            
-        if (cv2.getTickCount() - self.t) > self.sec:
-            print "FPS=%d" % self.nFrames
+        
+        now = time.time()
+        dt = now - self.t
+        if (now - self.t) > self.sec:
+            print "FPS=%f Processing Time=%f" % ((self.nFrames*1.0/dt), self.tproc_total*1.0/self.nFrames)
             self.nFrames = 0
-            self.t = cv2.getTickCount()
-
+            self.t = now
+            self.tproc_total = 0
+            
         ch = 0xFF & cv2.waitKey(1)
             
         if (ch == 'q'):
@@ -117,11 +123,12 @@ class DebugTracker(tracker.Tracker):
 
 # Parse the command line arguments
 opts, args = getopt.getopt(sys.argv[1:], "d", 
-                           ["noimage","output-file=","input-file="])
+                           ["noimage","output-file=","input-file=","force-lock"])
 
 input_file = None
 output_file = None
 show_image = True
+force_lock = False
 
 for o, a in opts:
     if o == '--noimage':
@@ -133,11 +140,19 @@ for o, a in opts:
     if o == '--output-file':
         output_file = a
 
+    if o == '--force-lock':
+        force_lock = True
 
-trk = DebugTracker(target.TrackingTarget, show_image, input_file, output_file)
+trk = DebugTracker(target.TrackingTarget, show_image, input_file, output_file, force_lock=force_lock)
 signal.signal(signal.SIGINT, lambda sig,frm: trk.stop())
 
 trk.start()
+
+for k in range(10):
+    time.sleep(10)
+    trk.switchToAcquire()
+    time.sleep(10)
+    trk.switchToLocked((200,200), 0.5)
 while not trk.running:
     pass
 

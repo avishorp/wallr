@@ -204,11 +204,11 @@ class WallrMain(object):
         self.trkMessages = Queue.Queue()
         if SIMULATE_TRACKER:
             # Initialize the simulation tracker
-            self.trk = tracker.TrackerLogPlayer('tracker.log', self.trackerCallback)
+            self.trk = tracker.TrackerLogPlayer(self.trackerCallback, 'tracker.log')
         else:
             # Initialize the tracker, and set the (calibrated) initial
             # search window position
-            self.trk = tracker.Tracker(target.TrackingTarget, self.trackerCallback)
+            self.trk = tracker.Tracker(self.trackerCallback, target.TrackingTarget)
             w = ast.literal_eval(WallrSettings.settings.display['lock rect'])
             self.trk.setAcquireRectangle(
                 trx.screen_to_tracker((w[0], w[1])),

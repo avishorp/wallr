@@ -15,7 +15,7 @@ MSG_LOCK_PROGRESS  = 3 # A number between 0 to 100 designating the acquisition p
 # This class is used for testing the game without an actual
 # tracker
 class TrackerLogPlayer(threading.Thread):
-    def __init__(self, logfile, cb):
+    def __init__(self, cb, logfile=None):
         super(TrackerLogPlayer, self).__init__()
         
         self.log = open(logfile, 'r')
