@@ -10,6 +10,7 @@ class Clock(pygame.sprite.Sprite):
         size = self.font.size("88:88:88")
         self.image = pygame.Surface(size)
         self.rect = pygame.Rect(pos, size)
+        self.allsegs = False
 
         self.pause()
 
@@ -24,6 +25,9 @@ class Clock(pygame.sprite.Sprite):
         self.last = time.time()
         self.paused = False
 
+    def allSegments(self, v):
+        self.allsegs = v
+
     def update(self):
         if not self.paused:
             now = time.time()
@@ -31,11 +35,15 @@ class Clock(pygame.sprite.Sprite):
             self.last = now
             self.elapsed += dt
 
-        t = self.elapsed
-        minute = int(t) / 60
-        sec = int(t - minute*60)
-        tenths = int((t - int(t))*100)
-        ts = "%02d:%02d:%02d" % (minute, sec, tenths)
+        if self.allsegs:
+            ts = "88:88:88"
+        else:
+            t = self.elapsed
+            minute = int(t) / 60
+            sec = int(t - minute*60)
+            tenths = int((t - int(t))*100)
+            ts = "%02d:%02d:%02d" % (minute, sec, tenths)
+
         ci = self.font.render(ts, True, (0,0,0))
         self.image.fill((255,255,255))
         self.image.blit(ci, (0, 0))

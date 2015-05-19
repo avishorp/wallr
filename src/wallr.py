@@ -7,6 +7,7 @@ from FuelGauge import FuelGauge
 from TrafficLights import TrafficLights
 from StaticSprite import StaticSprite
 from Clock import Clock
+from Timer import Timer
 
 class WallrLockMode(object):
     def __init__(self, screen, background):
@@ -105,6 +106,11 @@ class WallrGameMode(object):
             self.clock])
         self.location = None
         self.prevLocation = None
+
+        # Others
+        ########
+        # Create a group for pseudo-sprites
+        self.updateables = pygame.sprite.Group()
           
     def pause(self):
         self.clock.pause()
@@ -130,7 +136,18 @@ class WallrGameMode(object):
         if msg == tracker.MSG_COORDINATES:
             self.prevLocation = self.location
             self.location = (int(param['x'])/2, int(param['y'])/2)
-        
+
+    def switchToPlay(self):
+        self.state = WallrGameMode.STATE_PLAY
+        self.fuelGauge.fillTank( 
+            lambda: self.fuelGauge.setConstantRate(5, self.outOfFuel))
+        self.gameScreenSprites.add(self.traffic_light)
+        self.traffic_light.start()
+        self.screen.blit(self.background, (0,0))
+        self.clock.allSegments(True)
+        self.updateables.add(Timer(1, lambda: self.clock.allSegments(False),
+                                   start = True))
+
     def loop(self, ev):
         if not self.active:
             return False
@@ -147,12 +164,7 @@ class WallrGameMode(object):
             # play mode if so
             if ev.type == pygame.KEYDOWN:
                 # Start the game
-                self.state = WallrGameMode.STATE_PLAY
-                self.fuelGauge.fillTank( 
-                        lambda: self.fuelGauge.setConstantRate(5, self.outOfFuel))
-                self.gameScreenSprites.add(self.traffic_light)
-                self.traffic_light.start()
-                self.screen.blit(self.background, (0,0))
+                self.switchToPlay()
                 
 
         elif (self.state == WallrGameMode.STATE_WAIT) or (self.state == WallrGameMode.STATE_PLAY):
@@ -170,6 +182,8 @@ class WallrGameMode(object):
             r = pygame.draw.circle(self.screen, (0,0,255), self.location, 20, 2)
             updates.append(r)
             self.clear.append(r)
+        
+        self.updateables.update()
 
         pygame.display.update(updates)
 

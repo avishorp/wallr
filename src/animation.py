@@ -17,7 +17,6 @@ class Animation:
         self.resume = self.start
 
     def start(self):
-        print "**************** start"
         self.startPoint = self.destGetter()
         self.currentPoint = self.startPoint
         self.startTime = time.time()
@@ -56,7 +55,6 @@ class Animation:
         return (l, finish)
 
     def pause(self):
-        print "pausing"
         self.paused = True
 
 
