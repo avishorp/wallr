@@ -14,6 +14,7 @@ RESOURCES = {
                             center = (105, 4), keycolor = (255, 255, 255)),
     'red': GameResource.ImageResource('tl_red.png'),
     'red_yellow': GameResource.ImageResource('tl_red_yellow.png'),
+    'fuel_x1': GameResource.ImageResource('fuel_x1.png'),
     'green': GameResource.ImageResource('tl_green.png'),
     'clock_font': GameResource.Resource('DS-DIGI.TTF')
 }

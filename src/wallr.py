@@ -1,4 +1,5 @@
 import sys, time, os, signal
+import random
 import TrackerLogPlayer as tracker
 import pygame, Queue
 from WallrResources import RESOURCES, SETTINGS
@@ -8,6 +9,46 @@ from TrafficLights import TrafficLights
 from StaticSprite import StaticSprite
 from Clock import Clock
 from Timer import Timer
+
+class Coin(pygame.sprite.Sprite):
+    def __init__(self, pos, callback, lifetime):
+        pygame.sprite.Sprite.__init__(self)
+        c = RESOURCES['fuel_x1']
+        self.image = c.image
+        self.rect = pygame.Rect(pos, c.image.get_size())
+        self.elapsed = 0
+        self.lifetime = lifetime
+        self.resume()
+        
+    def pause(self):
+        self.paused = True
+
+    def resume(self):
+        self.paused = False
+        self.t0 = time.time()
+        
+    def update(self):
+        if self.paused:
+            return
+
+        now = time.time()
+        dt = now - self.t0
+        self.elapsed += dt
+        self.t0 = now
+        
+        if self.elapsed > self.lifetime:
+            self.kill()
+
+class TankPosition(StaticSprite):
+    def __init__(self):
+        size = 25
+        tank = pygame.Surface((size, size))
+        tank.fill((255,255,255))
+        tank.set_colorkey((255,255,255))
+        pygame.draw.circle(tank, (0,0,255), (size/2, size/2), size/2, 2) 
+
+        super(TankPosition, self).__init__(tank, (0,0))
+
 
 class WallrLockMode(object):
     def __init__(self, screen, background):
@@ -76,7 +117,6 @@ class WallrGameMode(object):
         self.screen = screen
         self.background = background
         self.state = WallrGameMode.STATE_START
-        self.clear = []
 
     def create(self):
         # Start Screen
@@ -100,10 +140,12 @@ class WallrGameMode(object):
                                            callback = self.resume_play)
         self.traffic_light.start()
         self.clock = Clock((10, 150))
+        self.tankPosition = TankPosition()
         self.gameScreenSprites = pygame.sprite.RenderUpdates([
             self.fuelGauge,
             self.traffic_light,
-            self.clock])
+            self.clock,
+            self.tankPosition])
         self.location = None
         self.prevLocation = None
 
@@ -111,13 +153,19 @@ class WallrGameMode(object):
         ########
         # Create a group for pseudo-sprites
         self.updateables = pygame.sprite.Group()
-          
+        self.challanges = pygame.sprite.RenderUpdates()
+        self.nextCoin = None
+
     def pause(self):
         self.clock.pause()
         self.fuelGauge.pause()
+        for sp in self.challanges.sprites():
+            sp.pause()
 
     def resume(self):
         print "Resume game"
+        if (self.state == WallrGameMode.STATE_PLAY):
+            self.state = WallrGameMode.STATE_WAIT
         self.gameScreenSprites.add(self.traffic_light)
         self.traffic_light.start()
         self.screen.blit(self.background, (0,0))
@@ -126,19 +174,22 @@ class WallrGameMode(object):
         self.active = True
 
     def resume_play(self):
+        self.state = WallrGameMode.STATE_PLAY
         self.clock.resume()
         self.fuelGauge.resume()
+        for sp in self.challanges.sprites():
+            sp.resume()
 
     def trackerMessage(self, msg, param):
         if msg == tracker.MSG_SWITCH_TO_ACQ:
             print "Switch back"
             self.active = False
         if msg == tracker.MSG_COORDINATES:
-            self.prevLocation = self.location
             self.location = (int(param['x'])/2, int(param['y'])/2)
+            self.tankPosition.setPosition(self.location)
 
     def switchToPlay(self):
-        self.state = WallrGameMode.STATE_PLAY
+        self.state = WallrGameMode.STATE_WAIT
         self.fuelGauge.fillTank( 
             lambda: self.fuelGauge.setConstantRate(5, self.outOfFuel))
         self.gameScreenSprites.add(self.traffic_light)
@@ -148,6 +199,31 @@ class WallrGameMode(object):
         self.updateables.add(Timer(1, lambda: self.clock.allSegments(False),
                                    start = True))
 
+    def generateCoins(self):
+        r = random.randint(0, 1000)
+        gen = (r < 5)
+        if gen:
+            # Generate a new coin
+            forbidden = [ self.fuelGauge.rect ]
+            scr = (self.screen.get_width() - 40,
+                   self.screen.get_height() - 40)
+            while True:
+                # Get a random point
+                p = (
+                    random.randint(1, scr[0]),
+                    random.randint(1, scr[1]))
+                print p
+                # Make sure the point is not in the
+                # forbidden list
+                for r in forbidden:
+                    if r.collidepoint(p):
+                        continue
+
+                break
+
+            c = Coin(p, None, 15)
+            self.challanges.add(c)
+        
     def loop(self, ev):
         if not self.active:
             return False
@@ -172,19 +248,24 @@ class WallrGameMode(object):
             self.gameScreenSprites.update()
             self.gameScreenSprites.clear(self.screen, self.background)
             updates = self.gameScreenSprites.draw(self.screen)
-
-        while len(self.clear) > 0:
-            r = self.clear.pop()
-            pygame.draw.rect(self.screen, (255,255,255), r, 0)
-            updates.append(r)
             
-        if self.location is not None:
-            r = pygame.draw.circle(self.screen, (0,0,255), self.location, 20, 2)
-            updates.append(r)
-            self.clear.append(r)
-        
+            if (self.state == WallrGameMode.STATE_PLAY):
+                # Update and draw the challanges
+                self.challanges.update()
+                self.challanges.clear(self.screen, self.background)
+                updates += self.challanges.draw(self.screen)
+
+                # Check if the tank collided any challage
+                collided = pygame.sprite.spritecollide(self.tankPosition,
+                                                       self.challanges,
+                                                       True)
+                # Generate new challanges
+                self.generateCoins()
+
+        # Update all the pseudo-sprites
         self.updateables.update()
 
+        # Finally, draw the screen
         pygame.display.update(updates)
 
         return True
