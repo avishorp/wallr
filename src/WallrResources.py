@@ -16,6 +16,7 @@ RESOURCES = {
     'red_yellow': GameResource.ImageResource('tl_red_yellow.png'),
     'fuel_x1': GameResource.ImageResource('fuel_x1.png'),
     'green': GameResource.ImageResource('tl_green.png'),
+    'gameover': GameResource.ImageResource('game-over.jpg'),
     'clock_font': GameResource.Resource('DS-DIGI.TTF')
 }
 

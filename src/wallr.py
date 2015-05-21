@@ -13,6 +13,8 @@ from StaticSprite import StaticSprite
 from Clock import Clock
 from Timer import Timer
 
+#sans = pygame.font.Font(pygame.font.match_font('sans'), 10)
+
 class Coin(pygame.sprite.Sprite):
     def __init__(self, pos, callback, lifetime):
         pygame.sprite.Sprite.__init__(self)
@@ -41,6 +43,13 @@ class Coin(pygame.sprite.Sprite):
         
         if self.elapsed > self.lifetime:
             self.kill()
+
+    def processCollision(self, p):
+        # The coin is always killed on collision
+        self.kill()
+
+        # Get a +5 bonus
+        return 5
 
 class TankPosition(StaticSprite):
     def __init__(self):
@@ -202,6 +211,13 @@ class WallrGameMode(object):
         self.challanges = pygame.sprite.RenderUpdates()
         self.nextCoin = None
 
+    def createGameOverScreen(self, lastscore):
+        s = self.background.copy()
+        i = RESOURCES['gameover'].image
+        s.blit(i, center(i, 30))
+        
+        self.gameOverScreen = s
+
     def pause(self):
         self.clock.pause()
         self.fuelGauge.pause()
@@ -210,13 +226,19 @@ class WallrGameMode(object):
 
     def resume(self):
         print "Resume game"
+        self.screen.blit(self.background, (0,0))
+
         if (self.state == WallrGameMode.STATE_PLAY):
             self.state = WallrGameMode.STATE_WAIT
-        self.gameScreenSprites.add(self.traffic_light)
-        self.traffic_light.start()
-        self.screen.blit(self.background, (0,0))
-        pygame.display.update()
 
+        if (self.state == WallrGameMode.STATE_WAIT):
+            self.gameScreenSprites.add(self.traffic_light)
+            self.traffic_light.start()
+
+        elif self.state == WallrGameMode.STATE_OVER:
+            self.screen.blit(self.gameOverScreen, (0,0))
+
+        pygame.display.update()
         self.active = True
 
     def resume_play(self):
@@ -237,13 +259,23 @@ class WallrGameMode(object):
     def switchToPlay(self):
         self.state = WallrGameMode.STATE_WAIT
         self.fuelGauge.fillTank( 
-            lambda: self.fuelGauge.setConstantRate(5, self.outOfFuel))
+            lambda: self.fuelGauge.setConstantRate(15, self.outOfFuel))
+        self.fuelGauge.resume()
         self.gameScreenSprites.add(self.traffic_light)
         self.traffic_light.start()
         self.screen.blit(self.background, (0,0))
         self.clock.allSegments(True)
         self.updateables.add(Timer(1, lambda: self.clock.allSegments(False),
                                    start = True))
+
+    def switchToGameOver(self):
+        self.state = WallrGameMode.STATE_OVER
+        self.createGameOverScreen(0)
+        
+        # In game over mode, the screen is drawn
+        # only once
+        self.screen.blit(self.gameOverScreen, (0,0))
+        pygame.display.update()
 
     def generateCoins(self):
         r = random.randint(0, 1000)
@@ -302,22 +334,38 @@ class WallrGameMode(object):
                 updates += self.challanges.draw(self.screen)
 
                 # Check if the tank collided any challage
+                tl = (self.tankPosition.rect.x,
+                      self.tankPosition.rect.y)
                 collided = pygame.sprite.spritecollide(self.tankPosition,
                                                        self.challanges,
-                                                       True)
+                                                       False)
+                bonus = 0
+                for c in collided:
+                    # Calculate the collision point inside
+                    # the sprite rect
+                    p = (
+                        c.rect.x + tl[0],
+                        c.rect.y + tl[1])
+                    bonus += c.processCollision(p)
+                
+                if bonus != 0:
+                    self.fuelGauge.addFuel(bonus)
+
                 # Generate new challanges
                 self.generateCoins()
 
         # Update all the pseudo-sprites
         self.updateables.update()
 
-        # Finally, draw the screen
-        pygame.display.update(updates)
+        if (self.state != WallrGameMode.STATE_OVER):
+            # Finally, draw the screen
+            pygame.display.update(updates)
 
         return True
         
     def outOfFuel(self):
         print "Out of fuel"
+        self.switchToGameOver()
 
 # This is the main game class for Wallr.
 # The main class implements the two major modes:
