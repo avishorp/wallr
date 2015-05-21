@@ -10,7 +10,7 @@ from StaticSprite import StaticSprite
 from Clock import Clock
 from Timer import Timer
 
-sans = pygame.font.Font(pygame.font.match_font('sans'), 10)
+#sans = pygame.font.Font(pygame.font.match_font('sans'), 10)
 
 class Coin(pygame.sprite.Sprite):
     def __init__(self, pos, callback, lifetime):
@@ -201,6 +201,7 @@ class WallrGameMode(object):
         self.state = WallrGameMode.STATE_WAIT
         self.fuelGauge.fillTank( 
             lambda: self.fuelGauge.setConstantRate(5, self.outOfFuel))
+        self.fuelGauge.resume()
         self.gameScreenSprites.add(self.traffic_light)
         self.traffic_light.start()
         self.screen.blit(self.background, (0,0))
@@ -295,6 +296,7 @@ class WallrGameMode(object):
         
     def outOfFuel(self):
         print "Out of fuel"
+        self.state = WallrGameMode.GAME_OVER
 
 # This is the main game class for Wallr.
 # The main class implements the two major modes:

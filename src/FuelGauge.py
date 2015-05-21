@@ -25,6 +25,9 @@ class FuelGauge(pygame.sprite.Sprite):
         self.rect = pygame.Rect(position, self.gauge.get_rect().size)
         self.image = pygame.Surface(self.gauge.get_rect().size)
         self.image.set_colorkey((255,255,255))
+        # Initial draw
+        self.image.fill(self.bgcolor)
+        self.image.blit(self.gauge.image, (0,0))
         
         self.setFuelLevel(0)
         self.currentAnimation = None
