@@ -1,7 +1,7 @@
 import cv2
 from target import TrackingTarget
 import numpy, threading, Queue, ast
-import time
+import time, signal
 import trkutil
 import WallrSettings
 import WallrVideo
@@ -20,7 +20,7 @@ MSG_LOCK_PROGRESS  = 3 # A number between 0 to 100 designating the acquisition p
 
 class Tracker(threading.Thread):
 
-    def __init__(self, callback, targetCls=None, force_lock = False):
+    def __init__(self, callback, targetCls=None, force_lock = False, search_win = None):
         super(Tracker, self).__init__()
         
         self.running = False
@@ -30,7 +30,12 @@ class Tracker(threading.Thread):
         # Get tracker settings from settings file
         st = WallrSettings.settings.tracker
         self.target_size = int(st['target size'])
-        self.search_win = trkutil.Rectangle(*ast.literal_eval(st['initial search window']))
+        print "target size is " + str(self.target_size)
+        if search_win is None:
+            self.search_win = trkutil.Rectangle(*ast.literal_eval(st['initial search window']))
+        else:
+            self.search_win = search_win
+        print "Search win is " + str(self.search_win)
         self.lock_retention = int(st['lock retention'])
         self.lock_threshold = float(st['lock threshold'])
         self.lock_stddev = float(st['lock stddev'])
@@ -54,13 +59,15 @@ class Tracker(threading.Thread):
         self.vsource = WallrVideo.WallrVideo(WallrSettings.settings.video)
         self.vsource.setup()
         self.vsource.start()
+        
+        # Install signal handler to force mode switch (for debugging)
+        self.force_switch = False
+        signal.signal(signal.SIGUSR1, self.setForceSwitch)
 
     def setAcquireRectangle(self, top_left, bottom_right):
         print 'set search rect'
         tl = (min(top_left[0], bottom_right[0]),min(top_left[1], bottom_right[1]))
         br = (max(top_left[0], bottom_right[0]),max(top_left[1], bottom_right[1]))
-        print tl
-        print br
 
         self.search_win = trkutil.Rectangle(tl[0], tl[1],
                                             br[0], br[1])
@@ -128,7 +135,7 @@ class Tracker(threading.Thread):
 
     def onFrame(self, nFrame, iimg, pimg):
         "Default callback for frame display"
-        
+
         # Run template matching
         roi = pimg[self.window.ytop:self.window.ybottom,
                    self.window.xleft:self.window.xright]
@@ -139,7 +146,7 @@ class Tracker(threading.Thread):
         sel_val = max_val
         sel_loc = max_loc
         sel_loc = (sel_loc[0] + self.window.xleft, sel_loc[1] + self.window.ytop)
-        
+        print min_loc,sel_val
         if self.state == TRK_STATE_ACQUIRE:
             # Target aquisition state
             #########################
@@ -207,9 +214,25 @@ class Tracker(threading.Thread):
                     if not self.force_lock:
                         self.switchToAcquire()
 
+        # Handle forced switch
+        if self.force_switch:
+            self.force_switch = False
+            if self.state == TRK_STATE_ACQUIRE:
+                # Force switch to lock
+                if len(self.lastDetections) > 0:
+                    pos = self.lastDetections[-1][0]
+                else:
+                    pos = (400, 400)
+                self.switchToLocked(pos, 0.5)
+            else:
+                # Force switch to acquire
+                self.switchToAcquire()
     
     def stddev(self, points):
         # Is it mathematically correct?
         v = map(numpy.std, zip(*points))
         return numpy.sqrt(v[0]*v[0] + v[1]*v[1] )
+    
+    def setForceSwitch(self, sig, frm):
+        self.force_switch = True
     

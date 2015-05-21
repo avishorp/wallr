@@ -7,21 +7,16 @@ sys.path.append('../src')
 
 import cv2, target, tracker
 import getopt, time, signal
+from TrackerProxy import TrackerProxy
 
 class DebugTracker(tracker.Tracker):
 
-    messages = {
-        tracker.MSG_SWITCH_TO_ACQ: 'SWITCH_TO_ACQ',
-        tracker.MSG_SWITCH_TO_LOCK: 'SWITCH_TO_LOCK',
-        tracker.MSG_COORDINATES: 'COORDINATES',
-        tracker.MSG_LOCK_PROGRESS: 'LOCK_PROGRESS'
-        }
 
-    def __init__(self, targetCls, show_image, input_file, output_file, force_lock):
+    def __init__(self, callback, targetCls = None, show_image = None, input_file = None, output_file = None, force_lock = False):
         self.t0 = time.time()
         self.log_file = open('tracker.log', 'wb')
 
-        super(DebugTracker, self).__init__(self.cblog, targetCls, force_lock)
+        super(DebugTracker, self).__init__(callback, targetCls, force_lock)
         self.t = time.time()
         self.sec = 5
         self.nFrames = 0
@@ -31,22 +26,6 @@ class DebugTracker(tracker.Tracker):
         self.output_file = output_file
 
 
-    def cblog(self, msg, param):
-        d = time.time() - self.t0
-        log_format = [("%f",d),("%d",msg)]
-
-        s = "Tracker Message: %s" % self.messages[msg]
-        if (msg == tracker.MSG_LOCK_PROGRESS):
-            s += " (progress: %f)" % param
-            log_format.append(("%f", param))
-        if (msg == tracker.MSG_COORDINATES):
-            s += " (x=%d, y=%d)" % (param['x'], param['y'])
-            log_format.append(("%f", param['x']))
-            log_format.append(("%f", param['y']))
-
-        print s
-        self.log_file.write((','.join([s[0] for s in log_format])+'\n') %
-                            tuple([s[1] for s in log_format]))
 
     def onFrame(self, nFrame, iimg, pimg):
         tf0 = time.time()
@@ -121,6 +100,31 @@ class DebugTracker(tracker.Tracker):
 ##############################################################
 ##############################################################
 
+messages = {
+        tracker.MSG_SWITCH_TO_ACQ: 'SWITCH_TO_ACQ',
+        tracker.MSG_SWITCH_TO_LOCK: 'SWITCH_TO_LOCK',
+        tracker.MSG_COORDINATES: 'COORDINATES',
+        tracker.MSG_LOCK_PROGRESS: 'LOCK_PROGRESS'
+}
+
+t0 = time.time()
+def cblog(msg, param):
+    d = time.time() - t0
+    log_format = [("%f",d),("%d",msg)]
+
+    s = "Tracker Message: %s" % messages[msg]
+    if (msg == tracker.MSG_LOCK_PROGRESS):
+        s += " (progress: %f)" % param
+        log_format.append(("%f", param))
+    if (msg == tracker.MSG_COORDINATES):
+        s += " (x=%d, y=%d)" % (param['x'], param['y'])
+        log_format.append(("%f", param['x']))
+        log_format.append(("%f", param['y']))
+
+    print s
+    #self.log_file.write((','.join([s[0] for s in log_format])+'\n') %
+    #                    tuple([s[1] for s in log_format]))
+
 # Parse the command line arguments
 opts, args = getopt.getopt(sys.argv[1:], "d", 
                            ["noimage","output-file=","input-file=","force-lock"])
@@ -143,7 +147,8 @@ for o, a in opts:
     if o == '--force-lock':
         force_lock = True
 
-trk = DebugTracker(target.TrackingTarget, show_image, input_file, output_file, force_lock=force_lock)
+#trk = DebugTracker(cblog, target.TrackingTarget, show_image, input_file, output_file, force_lock=force_lock)
+trk = TrackerProxy(DebugTracker, cblog, target.TrackingTarget, show_image, input_file, output_file, force_lock=force_lock)
 signal.signal(signal.SIGINT, lambda sig,frm: trk.stop())
 
 trk.start()

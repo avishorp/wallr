@@ -7,11 +7,12 @@
 import sys
 sys.path.append('../src')
 
-import cv2, target
+import cv2, target, os
 
 VIDEO_SIZE = (1920, 1080)
-TARGET_SIZE = range(12, 60)
+TARGET_SIZE = range(12, 50)
 show = True
+WHITE_SCREEN = False
 
 def graph_point(v, width):
     s = [' ']*width
@@ -30,6 +31,37 @@ if show:
     winname = "Size Test"
     cv2.namedWindow(winname)
     cv2.startWindowThread()
+
+if WHITE_SCREEN:
+    import pygame
+
+    # Check which frame buffer drivers are available
+    # Start with fbcon since directfb hangs with composite output
+    drivers = ['fbcon', 'directfb', 'svgalib']
+    found = False
+    for driver in drivers:
+        # Make sure that SDL_VIDEODRIVER is set
+        if not os.getenv('SDL_VIDEODRIVER'):
+            os.putenv('SDL_VIDEODRIVER', driver)
+            try:
+                pygame.display.init()
+            except pygame.error:
+                print 'Driver: {0} failed.'.format(driver)
+                continue
+            found = True
+            break
+        if not found:
+            raise Exception('No suitable video driver found!')
+    size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
+    print "Framebuffer size: %d x %d" % (size[0], size[1])
+    self.screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
+    # Clear the screen to start
+    self.screen.fill((255, 255, 255))
+    # Initialise font support
+    pygame.font.init()
+    # Render the screen
+    pygame.display.update()
+    pygame.mouse.set_visible(False)
 
 imggray = cv2.equalizeHist( cv2.cvtColor(img, cv2.cv.CV_RGB2GRAY))
 #imggray = cv2.cvtColor(img, cv2.cv.CV_RGB2GRAY)
