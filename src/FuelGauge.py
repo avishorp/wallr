@@ -122,3 +122,22 @@ class FuelGauge(pygame.sprite.Sprite):
 
     def fillTank(self, cb):
         self.animateToFuelLevel(100, cb, type=FuelGauge.ANIMATION_EXPONENTIAL)
+
+    def addFuel(self, amount, callback = None):
+        # Calc the new fuel amount
+        d = self.getFuelLevel() + amount
+        
+        # Clip it
+        d = max(min(d, 100), 1)
+        print "Addfuel: %d" % d
+        if d == 0:
+            cb = self.outOfFuelCallback()
+        else:
+            cb = callback
+            
+        an = self.animateToFuelLevel(d, cb, type=FuelGauge.ANIMATION_LINEAR,
+                                     rate = 100.0)
+
+    def outOfFuelCallback(self):
+        print "Out of fuel"
+        pass

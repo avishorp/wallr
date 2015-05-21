@@ -10,6 +10,8 @@ from StaticSprite import StaticSprite
 from Clock import Clock
 from Timer import Timer
 
+sans = pygame.font.Font(pygame.font.match_font('sans'), 10)
+
 class Coin(pygame.sprite.Sprite):
     def __init__(self, pos, callback, lifetime):
         pygame.sprite.Sprite.__init__(self)
@@ -38,6 +40,13 @@ class Coin(pygame.sprite.Sprite):
         
         if self.elapsed > self.lifetime:
             self.kill()
+
+    def processCollision(self, p):
+        # The coin is always killed on collision
+        self.kill()
+
+        # Get a +5 bonus
+        return 5
 
 class TankPosition(StaticSprite):
     def __init__(self):
@@ -201,7 +210,7 @@ class WallrGameMode(object):
 
     def generateCoins(self):
         r = random.randint(0, 1000)
-        gen = (r < 5)
+        gen = (r < 25)
         if gen:
             # Generate a new coin
             forbidden = [ self.fuelGauge.rect ]
@@ -256,9 +265,23 @@ class WallrGameMode(object):
                 updates += self.challanges.draw(self.screen)
 
                 # Check if the tank collided any challage
+                tl = (self.tankPosition.rect.x,
+                      self.tankPosition.rect.y)
                 collided = pygame.sprite.spritecollide(self.tankPosition,
                                                        self.challanges,
-                                                       True)
+                                                       False)
+                bonus = 0
+                for c in collided:
+                    # Calculate the collision point inside
+                    # the sprite rect
+                    p = (
+                        c.rect.x + tl[0],
+                        c.rect.y + tl[1])
+                    bonus += c.processCollision(p)
+                
+                if bonus != 0:
+                    self.fuelGauge.addFuel(bonus)
+
                 # Generate new challanges
                 self.generateCoins()
 
