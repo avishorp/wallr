@@ -13,20 +13,28 @@ class Animation:
         self.destGetter = getter
         self.destSetter = setter
         self.callback = callback
-        
+
+        self.resume = self.start
+
     def start(self):
         self.startPoint = self.destGetter()
+        self.currentPoint = self.startPoint
         self.startTime = time.time()
         self.directionUp = self.final > self.startPoint
         self.range = abs(self.final - self.startPoint)
+        self.paused = False
         #print "Starting: from %d to %d" % (self.startPoint, self.final)
         #for line in traceback.format_stack():
         #    print line.strip()
 
     def nextValue(self, now):
+        if self.paused:
+            return (self.currentVal, True)
+
         dt = now - self.startTime
         r = dt*(self.rate/100.0)
         l = self.startPoint + (self.final - self.startPoint)*r
+        self.currentVal = l
         rel = l/self.range
         if not self.directionUp:
             rel = 1 - rel
@@ -45,3 +53,8 @@ class Animation:
         self.destSetter(l)
 
         return (l, finish)
+
+    def pause(self):
+        self.paused = True
+
+

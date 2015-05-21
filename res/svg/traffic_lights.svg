@@ -15,7 +15,7 @@
    id="svg3486"
    version="1.1"
    inkscape:version="0.48.4 r9939"
-   sodipodi:docname="New document 8">
+   sodipodi:docname="traffic_lights.svg">
   <defs
      id="defs3488">
     <path
@@ -442,7 +442,10 @@ function set_col( c1, c2, c3 ) {
        height="320"
        x="488.04214"
        y="174.8727"
-       id="rect3529" />
+       id="rect3529"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_green.png"
+       inkscape:export-xdpi="48.46154"
+       inkscape:export-ydpi="48.46154" />
     <circle
        d="M 105,65 C 105,87.09139 87.09139,105 65,105 42.90861,105 25,87.09139 25,65 25,42.90861 42.90861,25 65,25 c 22.09139,0 40,17.90861 40,40 z"
        style="fill:url(#radialGradient3749);stroke:#000000;stroke-width:8"
@@ -454,7 +457,10 @@ function set_col( c1, c2, c3 ) {
        cy="65"
        r="40"
        id="redlight"
-       transform="translate(483.04215,169.87269)" />
+       transform="translate(483.04215,169.87269)"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_green.png"
+       inkscape:export-xdpi="48.46154"
+       inkscape:export-ydpi="48.46154" />
     <circle
        d="m 105,165 c 0,22.09139 -17.90861,40 -40,40 -22.09139,0 -40,-17.90861 -40,-40 0,-22.09139 17.90861,-40 40,-40 22.09139,0 40,17.90861 40,40 z"
        style="fill:url(#radialGradient3751);stroke:#000000;stroke-width:8"
@@ -466,7 +472,10 @@ function set_col( c1, c2, c3 ) {
        cy="165"
        r="40"
        id="yellight"
-       transform="translate(483.04215,169.87269)" />
+       transform="translate(483.04215,169.87269)"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_green.png"
+       inkscape:export-xdpi="48.46154"
+       inkscape:export-ydpi="48.46154" />
     <circle
        d="m 105,265 c 0,22.09139 -17.90861,40 -40,40 -22.09139,0 -40,-17.90861 -40,-40 0,-22.09139 17.90861,-40 40,-40 22.09139,0 40,17.90861 40,40 z"
        style="fill:url(#radialGradient3753);stroke:#000000;stroke-width:8"
@@ -478,7 +487,10 @@ function set_col( c1, c2, c3 ) {
        cy="265"
        r="40"
        id="grelight"
-       transform="translate(483.04215,169.87269)" />
+       transform="translate(483.04215,169.87269)"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_green.png"
+       inkscape:export-xdpi="48.46154"
+       inkscape:export-ydpi="48.46154" />
     <use
        height="1"
        width="1"
@@ -486,7 +498,10 @@ function set_col( c1, c2, c3 ) {
        x="0"
        xlink:href="#reflex"
        id="use3534"
-       transform="translate(483.04215,169.87269)" />
+       transform="translate(483.04215,169.87269)"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_green.png"
+       inkscape:export-xdpi="48.46154"
+       inkscape:export-ydpi="48.46154" />
     <use
        height="1"
        width="1"
@@ -494,7 +509,10 @@ function set_col( c1, c2, c3 ) {
        x="0"
        xlink:href="#reflex"
        transform="translate(483.04215,269.87269)"
-       id="use3536" />
+       id="use3536"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_green.png"
+       inkscape:export-xdpi="48.46154"
+       inkscape:export-ydpi="48.46154" />
     <use
        height="1"
        width="1"
@@ -502,14 +520,20 @@ function set_col( c1, c2, c3 ) {
        x="0"
        xlink:href="#reflex"
        transform="translate(483.04215,369.87269)"
-       id="use3538" />
+       id="use3538"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_green.png"
+       inkscape:export-xdpi="48.46154"
+       inkscape:export-ydpi="48.46154" />
     <rect
        width="120"
        height="320"
        x="94.013"
        y="172.01556"
        id="rect3618"
-       style="fill:url(#linearGradient3737);stroke:#000000;stroke-width:10" />
+       style="fill:url(#linearGradient3737);stroke:#000000;stroke-width:10"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_red.png"
+       inkscape:export-xdpi="48.459999"
+       inkscape:export-ydpi="48.459999" />
     <circle
        d="M 105,65 C 105,87.09139 87.09139,105 65,105 42.90861,105 25,87.09139 25,65 25,42.90861 42.90861,25 65,25 c 22.09139,0 40,17.90861 40,40 z"
        style="fill:url(#radialGradient3724);stroke:#000000;stroke-width:8"
@@ -521,7 +545,10 @@ function set_col( c1, c2, c3 ) {
        cy="65"
        r="40"
        id="redlight-8"
-       transform="translate(89.012989,167.01555)" />
+       transform="translate(89.012989,167.01555)"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_red.png"
+       inkscape:export-xdpi="48.459999"
+       inkscape:export-ydpi="48.459999" />
     <use
        height="1"
        width="1"
@@ -529,14 +556,20 @@ function set_col( c1, c2, c3 ) {
        x="0"
        xlink:href="#reflex-9"
        id="use3623"
-       transform="translate(89.012989,167.01555)" />
+       transform="translate(89.012989,167.01555)"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_red.png"
+       inkscape:export-xdpi="48.459999"
+       inkscape:export-ydpi="48.459999" />
     <rect
        style="fill:url(#linearGradient3720);stroke:#000000;stroke-width:10"
        id="rect3691"
        y="172.01556"
        x="298.06381"
        height="320"
-       width="120" />
+       width="120"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_red_yellow.png"
+       inkscape:export-xdpi="48.46154"
+       inkscape:export-ydpi="48.46154" />
     <circle
        id="circle3693"
        r="40"
@@ -548,7 +581,10 @@ function set_col( c1, c2, c3 ) {
        sodipodi:ry="40"
        style="fill:url(#radialGradient3707);stroke:#000000;stroke-width:8"
        d="M 105,65 C 105,87.09139 87.09139,105 65,105 42.90861,105 25,87.09139 25,65 25,42.90861 42.90861,25 65,25 c 22.09139,0 40,17.90861 40,40 z"
-       transform="translate(293.0638,167.01555)" />
+       transform="translate(293.0638,167.01555)"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_red_yellow.png"
+       inkscape:export-xdpi="48.46154"
+       inkscape:export-ydpi="48.46154" />
     <circle
        id="circle3695"
        r="40"
@@ -560,7 +596,10 @@ function set_col( c1, c2, c3 ) {
        sodipodi:ry="40"
        style="fill:url(#radialGradient3709);stroke:#000000;stroke-width:8"
        d="m 105,165 c 0,22.09139 -17.90861,40 -40,40 -22.09139,0 -40,-17.90861 -40,-40 0,-22.09139 17.90861,-40 40,-40 22.09139,0 40,17.90861 40,40 z"
-       transform="translate(293.0638,167.01555)" />
+       transform="translate(293.0638,167.01555)"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_red_yellow.png"
+       inkscape:export-xdpi="48.46154"
+       inkscape:export-ydpi="48.46154" />
     <use
        id="use3699"
        xlink:href="#reflex-9"
@@ -568,7 +607,10 @@ function set_col( c1, c2, c3 ) {
        y="0"
        width="1"
        height="1"
-       transform="translate(293.0638,167.01555)" />
+       transform="translate(293.0638,167.01555)"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_red_yellow.png"
+       inkscape:export-xdpi="48.46154"
+       inkscape:export-ydpi="48.46154" />
     <use
        id="use3701"
        transform="translate(293.0638,267.01555)"
@@ -576,7 +618,10 @@ function set_col( c1, c2, c3 ) {
        x="0"
        y="0"
        width="1"
-       height="1" />
+       height="1"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_red_yellow.png"
+       inkscape:export-xdpi="48.46154"
+       inkscape:export-ydpi="48.46154" />
     <circle
        transform="translate(293.13347,266.84733)"
        id="circle3764"
@@ -588,7 +633,10 @@ function set_col( c1, c2, c3 ) {
        sodipodi:rx="40"
        sodipodi:ry="40"
        style="fill:url(#radialGradient3768);stroke:#000000;stroke-width:8"
-       d="m 105,165 c 0,22.09139 -17.90861,40 -40,40 -22.09139,0 -40,-17.90861 -40,-40 0,-22.09139 17.90861,-40 40,-40 22.09139,0 40,17.90861 40,40 z" />
+       d="m 105,165 c 0,22.09139 -17.90861,40 -40,40 -22.09139,0 -40,-17.90861 -40,-40 0,-22.09139 17.90861,-40 40,-40 22.09139,0 40,17.90861 40,40 z"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_red_yellow.png"
+       inkscape:export-xdpi="48.46154"
+       inkscape:export-ydpi="48.46154" />
     <use
        id="use3766"
        transform="translate(293.13347,366.84733)"
@@ -596,7 +644,10 @@ function set_col( c1, c2, c3 ) {
        x="0"
        y="0"
        width="1"
-       height="1" />
+       height="1"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_red_yellow.png"
+       inkscape:export-xdpi="48.46154"
+       inkscape:export-ydpi="48.46154" />
     <circle
        transform="translate(87.062359,266.84733)"
        id="circle3770"
@@ -608,7 +659,10 @@ function set_col( c1, c2, c3 ) {
        sodipodi:rx="40"
        sodipodi:ry="40"
        style="fill:url(#radialGradient3778);stroke:#000000;stroke-width:8"
-       d="M 105,65 C 105,87.09139 87.09139,105 65,105 42.90861,105 25,87.09139 25,65 25,42.90861 42.90861,25 65,25 c 22.09139,0 40,17.90861 40,40 z" />
+       d="M 105,65 C 105,87.09139 87.09139,105 65,105 42.90861,105 25,87.09139 25,65 25,42.90861 42.90861,25 65,25 c 22.09139,0 40,17.90861 40,40 z"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_red.png"
+       inkscape:export-xdpi="48.459999"
+       inkscape:export-ydpi="48.459999" />
     <circle
        transform="translate(87.062359,266.84733)"
        id="circle3772"
@@ -620,7 +674,10 @@ function set_col( c1, c2, c3 ) {
        sodipodi:rx="40"
        sodipodi:ry="40"
        style="fill:url(#radialGradient3780);stroke:#000000;stroke-width:8"
-       d="m 105,165 c 0,22.09139 -17.90861,40 -40,40 -22.09139,0 -40,-17.90861 -40,-40 0,-22.09139 17.90861,-40 40,-40 22.09139,0 40,17.90861 40,40 z" />
+       d="m 105,165 c 0,22.09139 -17.90861,40 -40,40 -22.09139,0 -40,-17.90861 -40,-40 0,-22.09139 17.90861,-40 40,-40 22.09139,0 40,17.90861 40,40 z"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_red.png"
+       inkscape:export-xdpi="48.459999"
+       inkscape:export-ydpi="48.459999" />
     <use
        transform="translate(87.062359,266.84733)"
        id="use3774"
@@ -628,7 +685,10 @@ function set_col( c1, c2, c3 ) {
        x="0"
        y="0"
        width="1"
-       height="1" />
+       height="1"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_red.png"
+       inkscape:export-xdpi="48.459999"
+       inkscape:export-ydpi="48.459999" />
     <use
        id="use3776"
        transform="translate(87.062359,366.84733)"
@@ -636,6 +696,9 @@ function set_col( c1, c2, c3 ) {
        x="0"
        y="0"
        width="1"
-       height="1" />
+       height="1"
+       inkscape:export-filename="/home/local/projects/wallr/res/tl_red.png"
+       inkscape:export-xdpi="48.459999"
+       inkscape:export-ydpi="48.459999" />
   </g>
 </svg>
