@@ -1,0 +1,10 @@
+#!/bin/sh
+
+P=${0%/wallr}
+echo Running wallr from $P
+cd $P/src
+pwd
+python wallr.py
+
+
+
