@@ -165,6 +165,13 @@ class WallrGameMode(object):
         self.challanges = pygame.sprite.RenderUpdates()
         self.nextCoin = None
 
+    def createGameOverScreen(self, lastscore):
+        s = self.background.copy()
+        i = RESOURCES['gameover'].image
+        s.blit(i, center(i, 30))
+        
+        self.gameOverScreen = s
+
     def pause(self):
         self.clock.pause()
         self.fuelGauge.pause()
@@ -173,13 +180,19 @@ class WallrGameMode(object):
 
     def resume(self):
         print "Resume game"
+        self.screen.blit(self.background, (0,0))
+
         if (self.state == WallrGameMode.STATE_PLAY):
             self.state = WallrGameMode.STATE_WAIT
-        self.gameScreenSprites.add(self.traffic_light)
-        self.traffic_light.start()
-        self.screen.blit(self.background, (0,0))
-        pygame.display.update()
 
+        if (self.state == WallrGameMode.STATE_WAIT):
+            self.gameScreenSprites.add(self.traffic_light)
+            self.traffic_light.start()
+
+        elif self.state == WallrGameMode.STATE_OVER:
+            self.screen.blit(self.gameOverScreen, (0,0))
+
+        pygame.display.update()
         self.active = True
 
     def resume_play(self):
@@ -200,7 +213,7 @@ class WallrGameMode(object):
     def switchToPlay(self):
         self.state = WallrGameMode.STATE_WAIT
         self.fuelGauge.fillTank( 
-            lambda: self.fuelGauge.setConstantRate(5, self.outOfFuel))
+            lambda: self.fuelGauge.setConstantRate(15, self.outOfFuel))
         self.fuelGauge.resume()
         self.gameScreenSprites.add(self.traffic_light)
         self.traffic_light.start()
@@ -209,9 +222,18 @@ class WallrGameMode(object):
         self.updateables.add(Timer(1, lambda: self.clock.allSegments(False),
                                    start = True))
 
+    def switchToGameOver(self):
+        self.state = WallrGameMode.STATE_OVER
+        self.createGameOverScreen(0)
+        
+        # In game over mode, the screen is drawn
+        # only once
+        self.screen.blit(self.gameOverScreen, (0,0))
+        pygame.display.update()
+
     def generateCoins(self):
         r = random.randint(0, 1000)
-        gen = (r < 25)
+        gen = (r < 5)
         if gen:
             # Generate a new coin
             forbidden = [ self.fuelGauge.rect ]
@@ -289,14 +311,15 @@ class WallrGameMode(object):
         # Update all the pseudo-sprites
         self.updateables.update()
 
-        # Finally, draw the screen
-        pygame.display.update(updates)
+        if (self.state != WallrGameMode.STATE_OVER):
+            # Finally, draw the screen
+            pygame.display.update(updates)
 
         return True
         
     def outOfFuel(self):
         print "Out of fuel"
-        self.state = WallrGameMode.GAME_OVER
+        self.switchToGameOver()
 
 # This is the main game class for Wallr.
 # The main class implements the two major modes:
