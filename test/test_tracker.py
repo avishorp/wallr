@@ -55,10 +55,12 @@ class DebugTracker(tracker.Tracker):
                                 fontFace=cv2.FONT_HERSHEY_PLAIN, 
                                 fontScale=3, 
                                 color=[255, 255, 0])
-                    cv2.rectangle(imgdisp, (0,0), (self.target_size,self.target_size), color=[255,0,0])
+            cv2.rectangle(imgdisp, (0,0), (self.target_size,self.target_size), color=[255,0,0])
 
-            cv2.imshow('tracker', imgdisp)
-            cv2.imshow('matches', self.matches)
+            imgdisp2 = cv2.resize(imgdisp, (1280/2,720/2), interpolation = cv2.INTER_AREA)
+
+            cv2.imshow('tracker', imgdisp2)
+            #cv2.imshow('matches', self.matches)
         self.nFrames += 1
         
         now = time.time()
@@ -153,11 +155,11 @@ signal.signal(signal.SIGINT, lambda sig,frm: trk.stop())
 
 trk.start()
 
-for k in range(10):
-    time.sleep(10)
-    trk.switchToAcquire()
-    time.sleep(10)
-    trk.switchToLocked((200,200), 0.5)
+#for k in range(10):
+#    time.sleep(10)
+#    trk.switchToAcquire()
+#    time.sleep(10)
+#    trk.switchToLocked((200,200), 0.5)
 while not trk.running:
     pass
 

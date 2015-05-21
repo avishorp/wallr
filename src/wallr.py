@@ -122,11 +122,11 @@ class WallrLockMode(object):
                 (lock_rect[2]-lock_rect[0], lock_rect[3]-lock_rect[1])), 10)
 
         # Draw the text
-        fontname = pygame.font.match_font('sans')
-        font = pygame.font.Font(fontname, 34)
-        text = "Please place the tank in the rectangle"
-        st = font.render(text, True, (0,0,0))
-        self.image.blit(st, (self.screen.get_width()/2-st.get_width()/2, 200))
+        ##fontname = pygame.font.match_font('sans')
+        ##font = pygame.font.Font(fontname, 34)
+        ##text = "Please place the tank in the rectangle"
+        ##st = font.render(text, True, (0,0,0))
+        ##self.image.blit(st, (self.screen.get_width()/2-st.get_width()/2, 200))
         # Logo
         logo = RESOURCES['logo']
         self.image.blit(logo.image, (self.screen.get_width()/2-logo.get_rect().width/2, 320))
@@ -256,10 +256,15 @@ class WallrGameMode(object):
             self.location = trx.tracker_to_screen((param['x'], param['y']))
             self.tankPosition.setPosition(self.location)
 
+    def switchToStart(self):
+        self.state = WallrGameMode.STATE_START
+        self.screen.blit(self.background, (0,0))
+        pygame.display.update()
+
     def switchToPlay(self):
         self.state = WallrGameMode.STATE_WAIT
         self.fuelGauge.fillTank( 
-            lambda: self.fuelGauge.setConstantRate(15, self.outOfFuel))
+            lambda: self.fuelGauge.setConstantRate(5, self.outOfFuel))
         self.fuelGauge.resume()
         self.gameScreenSprites.add(self.traffic_light)
         self.traffic_light.start()
@@ -276,6 +281,9 @@ class WallrGameMode(object):
         # only once
         self.screen.blit(self.gameOverScreen, (0,0))
         pygame.display.update()
+
+        self.updateables.add(Timer(10, lambda: self.switchToStart(),
+                                   start = True))
 
     def generateCoins(self):
         r = random.randint(0, 1000)
@@ -395,8 +403,6 @@ class WallrMain(object):
             w = ast.literal_eval(WallrSettings.settings.display['lock rect'])
             w_bottomright = trx.screen_to_tracker((w[0], w[1]))
             w_topleft = trx.screen_to_tracker((w[2], w[3]))
-            w_topleft = (0,0)
-            w_bottomright = (1900, 1000)
             print w_topleft
             print w_bottomright
             w_rect = trkutil.Rectangle(w_topleft[0], w_topleft[1], w_bottomright[0], w_bottomright[1])

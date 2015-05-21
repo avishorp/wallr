@@ -9,7 +9,7 @@ sys.path.append('../src')
 
 import cv2, target, os
 
-VIDEO_SIZE = (1920, 1080)
+VIDEO_SIZE = (1280, 720)
 TARGET_SIZE = range(12, 50)
 show = True
 WHITE_SCREEN = False
