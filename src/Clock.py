@@ -1,6 +1,12 @@
 import pygame, time
 from WallrResources import RESOURCES, SETTINGS
 
+def timeToMMSSTT(t):
+    minute = int(t) / 60
+    sec = int(t - minute*60)
+    tenths = int((t - int(t))*100)
+    return "%02d:%02d:%02d" % (minute, sec, tenths)
+
 class Clock(pygame.sprite.Sprite):
     def __init__(self, pos):
         pygame.sprite.Sprite.__init__(self)
@@ -38,12 +44,11 @@ class Clock(pygame.sprite.Sprite):
         if self.allsegs:
             ts = "88:88:88"
         else:
-            t = self.elapsed
-            minute = int(t) / 60
-            sec = int(t - minute*60)
-            tenths = int((t - int(t))*100)
-            ts = "%02d:%02d:%02d" % (minute, sec, tenths)
+            ts = timeToMMSSTT(self.elapsed)
 
         ci = self.font.render(ts, True, (0,0,0))
         self.image.fill((255,255,255))
         self.image.blit(ci, (0, 0))
+
+    def getTime(self):
+        return self.elapsed

@@ -1,16 +1,16 @@
 import sys, time, os, signal
-import random
+import random, ast
 import TrackerLogPlayer as tracker
 import pygame, Queue
 from WallrResources import RESOURCES, SETTINGS
+import WallrSettings
 from ProgressBar import ProgressBar
 from FuelGauge import FuelGauge
 from TrafficLights import TrafficLights
 from StaticSprite import StaticSprite
-from Clock import Clock
+import Clock
 from Timer import Timer
-
-#sans = pygame.font.Font(pygame.font.match_font('sans'), 10)
+from iniparse.config import Undefined
 
 class Coin(pygame.sprite.Sprite):
     def __init__(self, pos, callback, lifetime):
@@ -148,7 +148,7 @@ class WallrGameMode(object):
         self.traffic_light = TrafficLights((500,30),
                                            callback = self.resume_play)
         self.traffic_light.start()
-        self.clock = Clock((10, 150))
+        self.clock = Clock.Clock((10, 150))
         self.tankPosition = TankPosition()
         self.gameScreenSprites = pygame.sprite.RenderUpdates([
             self.fuelGauge,
@@ -166,9 +166,35 @@ class WallrGameMode(object):
         self.nextCoin = None
 
     def createGameOverScreen(self, lastscore):
-        s = self.background.copy()
-        i = RESOURCES['gameover'].image
+        game_time = self.clock.getTime()
+        s = pygame.Surface(self.screen.get_size())
+        s.blit(RESOURCES['game_over_image'].image, (0,0))
+        font = pygame.font.Font(RESOURCES['game_over_font'].filename, 70)
+        text = "GAME OVER"
+        i = font.render(text, True, (0,0,0))
+        i.set_colorkey((255,255,255))
         s.blit(i, center(i, 30))
+
+        text = "Your time: " + Clock.timeToMMSSTT(game_time)
+        i = sans40.render(text, True, (0,0,0))
+        s.blit(i, center(i, 90))
+
+        text = "HIGH SCORE"
+        i = sans40.render(text, True, (255, 128, 0))
+        s.blit(i, center(i, 150))
+
+        table, indx = self.highscore(game_time)
+        y = 200
+        for k in range(len(table)):
+            ent = table[k]
+            text = Clock.timeToMMSSTT(ent[0])
+            if indx == k:
+                color = (255,0,0)
+            else:
+                color = (0,0,0)
+            i = sans30.render(text, True, color)
+            s.blit(i, center(i, y))
+            y += 40
         
         self.gameOverScreen = s
 
@@ -184,6 +210,8 @@ class WallrGameMode(object):
 
         if (self.state == WallrGameMode.STATE_PLAY):
             self.state = WallrGameMode.STATE_WAIT
+        if (self.state == WallrGameMode.STATE_OVER):
+            self.state = WallrGameMode.STATE_START
 
         if (self.state == WallrGameMode.STATE_WAIT):
             self.gameScreenSprites.add(self.traffic_light)
@@ -321,6 +349,39 @@ class WallrGameMode(object):
         print "Out of fuel"
         self.switchToGameOver()
 
+    def highscore(self, current):
+        currentt = (current, time.time())
+        # Read the existing high score table
+        table = []
+        for i in range(1,6):
+            raw = WallrSettings.settings.highscore['entry%d' % i]
+            if isinstance(raw, Undefined):
+                entry = (0,0)
+            else:
+                entry = ast.literal_eval(raw)
+            table.append(entry)
+
+        # Sort it
+        table.sort(cmp=lambda x,y: 1 if x[0] < y[0] else -1)
+        
+        # Check if the current entry enters the table
+        hsindex = None
+        for i in range(len(table)):
+            if (hsindex is None) and (current > table[i][0]):
+                # Insert the new entry an push everything down
+                # by one
+                table.insert(i, currentt)
+                table.pop()
+                hsindex = i
+                break
+
+        # Write the table back
+        for i in range(1,6):
+            WallrSettings.settings.highscore['entry%d' % i] = str(table[i-1])
+        WallrSettings.save()
+                
+        return (table, hsindex)
+
 # This is the main game class for Wallr.
 # The main class implements the two major modes:
 #   - LOCK mode - In which the user is requested to put the car
@@ -351,6 +412,9 @@ class WallrMain(object):
         self.background.fill(SETTINGS['background_color'])
         
         globals()['center'] = lambda img, y: (self.screen.get_rect().width/2-img.get_rect().width/2, y)
+        globals()['sans30'] = pygame.font.Font(pygame.font.match_font('sans'), 40)
+        globals()['sans40'] = pygame.font.Font(pygame.font.match_font('sans'), 40)
+        globals()['sans50'] = pygame.font.Font(pygame.font.match_font('sans'), 50)
 
         self.modeLock = WallrLockMode(self.screen, self.background)
         self.modeGame = WallrGameMode(self.screen, self.background)
