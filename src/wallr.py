@@ -462,10 +462,11 @@ class WallrMain(object):
         else:
             # Initialize the tracker, and set the (calibrated) initial
             # search window position
-            #self.trk = tracker.Tracker(self.trackerCallback, target.TrackingTarget)
+            # The actual area passed to the tracker is inflated by 30 pixel in any direction
+            # relative to the one shown on the screen
             w = ast.literal_eval(WallrSettings.settings.display['lock rect'])
-            w_bottomright = trx.screen_to_tracker((w[0], w[1]))
-            w_topleft = trx.screen_to_tracker((w[2], w[3]))
+            w_bottomright = trx.screen_to_tracker((w[0]-30, w[1]-30))
+            w_topleft = trx.screen_to_tracker((w[2]+30, w[3]+30))
             w_rect = trkutil.Rectangle(w_topleft[0], w_topleft[1], w_bottomright[0], w_bottomright[1])
 
             self.trk = TrackerProxy(tracker.Tracker, self.trackerCallback, 
@@ -477,10 +478,14 @@ class WallrMain(object):
         # Initialize PyGame and create a screen and a background
         pygame.init()
         self.init_display()
+        pygame.mouse.set_visible(False)
+
+        # Create some infrastructue surfaces
         self.screen = pygame.display.set_mode(SETTINGS['screen_size'])
         self.background = pygame.Surface(SETTINGS['screen_size'])
         self.background.fill(SETTINGS['background_color'])
         
+        # Usable globals that require pygame to be initiated
         globals()['center'] = lambda img, y: (self.screen.get_rect().width/2-img.get_rect().width/2, y)
         globals()['sans30'] = pygame.font.Font(pygame.font.match_font('sans'), 40)
         globals()['sans40'] = pygame.font.Font(pygame.font.match_font('sans'), 40)
