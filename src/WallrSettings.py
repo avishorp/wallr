@@ -4,3 +4,8 @@ import iniparse
 INIFILE = "../src/wallr.ini"
 
 settings = iniparse.INIConfig(open(INIFILE))
+
+def save():
+    f = open(INIFILE, 'w')
+    print >>f, settings
+    f.close()

@@ -17,7 +17,9 @@ RESOURCES = {
     'fuel_x1': GameResource.ImageResource('fuel_x1.png'),
     'green': GameResource.ImageResource('tl_green.png'),
     'gameover': GameResource.ImageResource('game-over.jpg'),
-    'clock_font': GameResource.Resource('DS-DIGI.TTF')
+    'clock_font': GameResource.Resource('DS-DIGI.TTF'),
+    'game_over_image': GameResource.ImageResource('game_over_img.jpg'),
+    'game_over_font': GameResource.Resource('RPGSystem.ttf')
 }
 
 SETTINGS = {
