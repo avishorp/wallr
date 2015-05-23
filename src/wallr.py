@@ -257,7 +257,7 @@ class WallrGameMode(object):
         if (self.state == WallrGameMode.STATE_PLAY):
             self.state = WallrGameMode.STATE_WAIT
         if (self.state == WallrGameMode.STATE_OVER):
-            self.state = WallrGameMode.STATE_START
+            self.switchToStart()
 
         if (self.state == WallrGameMode.STATE_WAIT):
             self.gameScreenSprites.add(self.traffic_light)
@@ -328,7 +328,7 @@ class WallrGameMode(object):
                 p = (
                     random.randint(1, scr[0]),
                     random.randint(1, scr[1]))
-                print p
+
                 # Make sure the point is not in the
                 # forbidden list
                 for r in forbidden:
@@ -466,8 +466,6 @@ class WallrMain(object):
             w = ast.literal_eval(WallrSettings.settings.display['lock rect'])
             w_bottomright = trx.screen_to_tracker((w[0], w[1]))
             w_topleft = trx.screen_to_tracker((w[2], w[3]))
-            print w_topleft
-            print w_bottomright
             w_rect = trkutil.Rectangle(w_topleft[0], w_topleft[1], w_bottomright[0], w_bottomright[1])
 
             self.trk = TrackerProxy(tracker.Tracker, self.trackerCallback, 
@@ -538,15 +536,35 @@ class WallrMain(object):
         self.modeLock.resume()
 
         while self.running:
+            # Pygame Event handling
+            #######################
             event = pygame.event.poll()
+            ehandled = False
             if event.type == pygame.QUIT:
                 self.running = False
+
+            elif event.type == pygame.KEYDOWN:
+                print "Keydown"
+                if event.key == pygame.K_BACKSPACE:
+                    # Pressing backspace causes the tracker to force mode
+                    # switch
+                    self.trk.forceSwitch()
+                    ehandled = True
+                elif event.key == pygame.K_ESCAPE:
+                    self.running = False
+                    self.trk.terminate()
+                    ehandled = True
+
+            if ehandled:
+                ev = pygame.event.Event(0)
 
             if self.mode == WallrMain.MODE_LOCK:
                 cm = self.modeLock
             else:
                 cm = self.modeGame
 
+            # Tracker event handling
+            ########################
             # Check if a message is available on the queue
             # from the tracker
             if not self.trkMessages.empty():

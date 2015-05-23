@@ -146,7 +146,7 @@ class Tracker(threading.Thread):
         sel_val = max_val
         sel_loc = max_loc
         sel_loc = (sel_loc[0] + self.window.xleft, sel_loc[1] + self.window.ytop)
-        print min_loc,sel_val
+        #print min_loc,sel_val
         if self.state == TRK_STATE_ACQUIRE:
             # Target aquisition state
             #########################
@@ -235,4 +235,9 @@ class Tracker(threading.Thread):
     
     def setForceSwitch(self, sig, frm):
         self.force_switch = True
+        
+    def forceSwitch(self):
+        print "Tracker: Force Mode Switch"
+        self.setForceSwitch(None, None)
+
     

@@ -1,6 +1,6 @@
 from multiprocessing import Process, Pipe
 from threading import Thread
-
+import traceback
 
 class TrackerProxy(Thread):
 
@@ -27,14 +27,19 @@ class TrackerProxy(Thread):
         while self.running:
             msg = self.tmsgParent.recv()
             if msg is not None:
-                print "Parent Received :" + str(msg)
                 # Wait for messages on the pipe, and send them to the callback
                 self.callback(*msg)
 
     def terminate(self):
-        self.tmsgParent.send(False)
+        self.tmsgParent.send(('terminate', None))
         self.running = False
         self.join()
+
+    def forceSwitch(self):
+        #for line in traceback.format_stack():
+        #    print line.strip()
+        print "TrackerProxy: forceSwitch"
+        self.tmsgParent.send(('forceSwitch', ()))
 
     def stop(self):
         self.running = False
@@ -42,6 +47,7 @@ class TrackerProxy(Thread):
     def trackerWrapper(self, tmsg, cls, args, kwargs):
         # Create the tracker object
         tracker = cls(lambda msg, params: tmsg.send((msg, params)), *args, **kwargs)
+        self.tracker = tracker
         tracker.start()
         
         self.running = True
@@ -49,8 +55,14 @@ class TrackerProxy(Thread):
             try:
                 msg = tmsg.recv()
                 if msg is not None:
-                    print "Child terminating"
-                    running = false
+                    fn, params = msg
+                    print "TrackerProxy(RX): " + fn
+                    if (fn == 'terminate'):
+                        print "Child terminating"
+                        running = False
+                    else:
+                        getattr(tracker, fn)(*params)
+
             except IOError,e:
                 if e.errno == 4:
                     # Ignore error caused by handled signal

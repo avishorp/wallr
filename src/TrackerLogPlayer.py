@@ -25,6 +25,9 @@ class TrackerLogPlayer(threading.Thread):
     def terminate(self):
         self.running = False
 
+    def forceSwitch(self):
+        print "Force switch received"
+
     def run(self):
         t0 = time.time()
         for l in self.log:
