@@ -4,8 +4,8 @@ import numpy, threading, Queue, ast
 import time, signal
 import trkutil
 import WallrSettings
-import WallrVideo
-#import WallrVideoV4L as WallrVideo
+#import WallrVideo
+import WallrVideoV4L as WallrVideo
 
 # Tracking states
 TRK_STATE_ACQUIRE = 0
@@ -141,7 +141,7 @@ class Tracker(threading.Thread):
                    self.window.xleft:self.window.xright]
         self.rroi = roi
                    
-        self.matches = cv2.matchTemplate(roi, self.target, cv2.TM_CCOEFF_NORMED)
+        self.matches = cv2.matchTemplate(roi, self.target, cv2.TM_CCORR_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(self.matches)
         sel_val = max_val
         sel_loc = max_loc

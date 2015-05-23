@@ -78,9 +78,10 @@ class CoordinateTranslator(object):
         bottom_right = ast.literal_eval(st.calibration['bottom right'])
         self.disp_width = int(st.display['width'])
         self.disp_height = int(st.display['height'])
+        target_size = int(st.tracker['target size'])
         
-        self.xa, self.xb = self.calc_ab(top_left[0], bottom_right[0], 0, self.disp_width)
-        self.ya, self.yb = self.calc_ab(top_left[1], bottom_right[1], 0, self.disp_height)
+        self.xa, self.xb = self.calc_ab(top_left[0], bottom_right[0], 0, self.disp_width - target_size)
+        self.ya, self.yb = self.calc_ab(top_left[1], bottom_right[1], 0, self.disp_height - target_size)
 
     def calc_ab(self, from_min, from_max, to_min, to_max):
         a = (to_min - to_max)*1.0/(from_min - from_max)
