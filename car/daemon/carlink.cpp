@@ -16,7 +16,7 @@
 #include <fusekit/stream_callback_file.h>
 #include <iostream>
 #include "RF24.h"
-#include "../protocol.h"
+#include "../car_firmware/protocol.h"
 
 using namespace std;
 
