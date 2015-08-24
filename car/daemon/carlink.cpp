@@ -38,6 +38,7 @@ bool nrf_init()
   radio.setCRCLength(RF24_CRC_16);
   radio.openReadingPipe(1, NRF_CAR_ADDR);
   radio.openWritingPipe(NRF_PI_ADDR);
+  radio.powerUp();
 
 #ifdef DEBUG
   radio.printDetails();
