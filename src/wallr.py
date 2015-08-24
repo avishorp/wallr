@@ -13,6 +13,8 @@ from StaticSprite import StaticSprite
 import Clock
 from Timer import Timer
 from iniparse.config import Undefined
+import Queue
+
 
 class Coin(pygame.sprite.Sprite):
     def __init__(self, pos, callback, lifetime):
@@ -290,11 +292,13 @@ class WallrGameMode(object):
         pygame.display.update()
 
         self.clock.reset()
+        self.clock.pause()
 
     def switchToPlay(self):
         self.state = WallrGameMode.STATE_WAIT
+        self.challanges.empty()
         self.fuelGauge.fillTank( 
-            lambda: self.fuelGauge.setConstantRate(5, self.outOfFuel))
+            lambda: self.fuelGauge.setConstantRate(8, self.outOfFuel))
         self.fuelGauge.resume()
         self.gameScreenSprites.add(self.traffic_light)
         self.traffic_light.start()
@@ -317,7 +321,7 @@ class WallrGameMode(object):
 
     def generateCoins(self):
         r = random.randint(0, 1000)
-        gen = (r < 5)
+        gen = (r < 2)
         if gen:
             # Generate a new coin
             forbidden = [ self.fuelGauge.rect ]
