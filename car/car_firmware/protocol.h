@@ -13,6 +13,7 @@
 typedef struct {
   uint8_t magic1;  // Must be equal to MAGIC1
   uint8_t magic2;  // Must be equal to MAGIC2
+  uint16_t serial; // Message serial number
   uint8_t speed;   // Speed (0-127)
   uint8_t rot;     // Rotation (-32 to +32)
   uint8_t leds;    // LED status (bitmapped)
@@ -22,6 +23,7 @@ typedef struct {
 typedef struct {
   uint8_t magic1;  // Must be equal to MAGIC1
   uint8_t magic2;  // Must be equal to MAGIC2
+  uint16_t serial; // The serial number this num acknowledges
   uint8_t battery; // Battery status
   uint8_t running; // Non-zero if the car is running
 } msg_from_car_t;
