@@ -15,7 +15,9 @@
 #include <iostream>
 #include <fusekit/daemon.h>
 #include <fusekit/stream_object_file.h>
+#include <fusekit/stream_callback_file.h>
 #include <thread>
+#include <functional>
 #include <boost/regex.hpp>
 #include "RF24.h"
 #include "../car_firmware/protocol.h"
@@ -32,6 +34,8 @@ using namespace boost;
 #define SPEED_MAX 127
 #define ROT_MIN -127
 #define ROT_MAX 127
+
+#define NOT_CONNECTED "not_connected"
 
 class carlink {
 
@@ -72,6 +76,18 @@ public:
     leds = _leds;
   }
 
+  bool is_connected() const {
+    return connected;
+  }
+
+  bool is_running() const {
+    return running;
+  }
+
+  int get_battery() const {
+    return battery;
+  }
+
 
 protected:
   carlink(): 
@@ -82,6 +98,7 @@ protected:
     retries = 0;
     inmsg = (msg_from_car_t*)buf;
     connected = false;
+    running = false;
     loop_running = false;
     speed = 0;
     rot = 0;
@@ -122,6 +139,8 @@ protected:
 	      
 	  // Switch to connected state
 	  connected = true;	      retries = NUM_RETRIES;
+	  running = inmsg->running;
+	  battery = inmsg->battery;
 
 	}
 	else {
@@ -182,6 +201,8 @@ protected:
   uint16_t serial;
   uint8_t buf[32];
   bool connected;
+  bool running;
+  uint8_t battery;
   int retries;
   msg_from_car_t* inmsg;
   int speed;
@@ -273,6 +294,33 @@ std::istream& operator>>(std::istream& is, control_file& f) {
 }
 
 
+// Functions to read the car state
+// and convert it to strings
+int f_is_connected(ostream& os) {
+  carlink& car = carlink::get_instance();
+  os << car.is_connected();
+  return 0;
+}
+
+int f_is_running(ostream& os) {
+  carlink& car = carlink::get_instance();
+  if (!car.is_connected())
+    os << NOT_CONNECTED;
+  else
+    os << car.is_running();
+
+  return 0;
+}
+
+int f_battery(ostream& os) {
+  carlink& car = carlink::get_instance();
+  if (!car.is_connected())
+    os << NOT_CONNECTED;
+  else
+    os << car.get_battery();
+
+  return 0;
+}
 
 int main( int argc, char* argv[] ){
 
@@ -286,6 +334,12 @@ int main( int argc, char* argv[] ){
 
   fusekit::daemon<>& daemon = fusekit::daemon<>::instance();
   daemon.root().add_file("control", new control_file(car)); 
+  daemon.root().add_file("connected", 
+	 fusekit::make_ostream_callback_file(f_is_connected));
+  daemon.root().add_file("running", 
+	 fusekit::make_ostream_callback_file(f_is_running));
+  daemon.root().add_file("battery", 
+	 fusekit::make_ostream_callback_file(f_battery));
 
   return daemon.run(argc,argv);
 
