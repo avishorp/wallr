@@ -12,9 +12,10 @@
 //    3       GND (or any other ground)
 
 #include <unistd.h>
-#include <fusekit/daemon.h>
-#include <fusekit/stream_callback_file.h>
 #include <iostream>
+#include <fusekit/daemon.h>
+#include <fusekit/stream_object_file.h>
+#include <thread>
 #include "RF24.h"
 #include "../car_firmware/protocol.h"
 
@@ -26,6 +27,30 @@ using namespace std;
 class carlink {
 
 public:
+  static carlink& get_instance() {
+    if (instance == NULL) {
+      instance = new carlink();
+      instance->init();
+    }
+    return *instance;
+  }
+
+  void start() {
+
+    // Create a thread
+    loop_running = true;
+    loop_thread = new thread([this]() { this->run(); });
+  }
+
+  void stop() {
+    if (loop_running) {
+      loop_running = false;
+      loop_thread->join();
+    }
+  }
+
+
+protected:
   carlink(): 
     radio(RPI_V2_GPIO_P1_15, RPI_V2_GPIO_P1_24, BCM2835_SPI_SPEED_8MHZ) {
     msg_to_car.magic1 = MAGIC1;
@@ -34,6 +59,7 @@ public:
     retries = 0;
     inmsg = (msg_from_car_t*)buf;
     connected = false;
+    loop_running = false;
   }
 
   bool init() {
@@ -41,7 +67,7 @@ public:
   }
 
   void run() {
-    while(1) {
+    while(loop_running) {
       // TODO: Fill the real values here
       msg_to_car.speed = 0;
       msg_to_car.rot = 0;
@@ -87,7 +113,6 @@ public:
       if (retries == 0) {
 	connected = false;
       }
-      cout << connected << endl;
 
       radio.stopListening();
     }
@@ -119,6 +144,10 @@ protected:
     return true;
   }
 
+protected:
+  static carlink* instance;
+  thread* loop_thread;
+  bool loop_running;
   RF24 radio;
   msg_to_car_t msg_to_car;
   msg_from_car_t msg_from_car;
@@ -130,46 +159,51 @@ protected:
 
 };
 
-  carlink car;
+carlink* carlink::instance = NULL;
+
+/// control virtual file implementation
+///////////////////////////////////////
 
 
-/// free function which will be called
-/// when the virtual file "hello.txt" is read
-int hello( std::ostream& os ){
-  os << "hello world!";
-  return 0;
+struct control_file: 
+  public fusekit::iostream_object_file<control_file>::type {
+
+  control_file() : fusekit::iostream_object_file<control_file>::type(*this)
+  {}
+
+  int open(fuse_file_info& fi) {
+    carlink::get_instance().start();
+    return fusekit::iostream_object_file<control_file>::type::open(fi);
+  }
+
+  int release(fuse_file_info& fi) {
+    carlink::get_instance().stop();
+    return fusekit::iostream_object_file<control_file>::type::release(fi);
+  }
+
+};
+
+std::ostream& operator<<(std::ostream& os, const control_file& f)
+{
+  return os;
 }
 
-/// example which demonstrates how to expose
-/// data through a free function callback.
-/// after program has been started (see below)
-/// you can find a single file called hello.txt within
-/// the mountpoint/mount-directory. try to read it
-/// with cat( e.g. cat hello_mnt/hello.txt).
-/// 
-/// start from shell like this:
-/// $ mkdir hello_mnt
-/// $ hellofs hello_mnt
+std::istream& operator>>(std::istream& is, control_file& f) {
+  return is;
+}
+
+
+
 int main( int argc, char* argv[] ){
-  if (!car.init())
-    return -1;
 
-  car.run();
+  //if (!car.init())
+  //  return -1;
 
-  /*
+  //car.run();
+
+
   fusekit::daemon<>& daemon = fusekit::daemon<>::instance();
-  daemon.root().add_file(
-			 "hello.txt", 
-			 /// create an ostream_callback_file instance
-			 /// with auto deduced template parameters
-			 fusekit::make_ostream_callback_file(hello)
-			 );
-  /// runs the daemon at the mountpoint specified in argv
-  /// and with other options if specified
+  daemon.root().add_file("control", new control_file); 
+
   return daemon.run(argc,argv);
-  */
-
-
-
-  return 0;
 }
