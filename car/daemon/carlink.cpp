@@ -26,6 +26,13 @@ using namespace boost;
 #define NUM_RETRIES 15  // Number of retries with no response tolerated
                         // until loss-of-connection is declared
 
+#define CONTROL_REGEX  "@(-?[[:digit:]]{1,3}),(-?[[:digit:]]{1,3})"
+
+#define SPEED_MIN -127
+#define SPEED_MAX 127
+#define ROT_MIN -127
+#define ROT_MAX 127
+
 class carlink {
 
 public:
@@ -51,6 +58,20 @@ public:
     }
   }
 
+  void set_speed(int _speed) {
+    if ((_speed >= SPEED_MIN) && (_speed <= SPEED_MAX))
+      speed = _speed;
+  }
+
+  void set_rot(int _rot) {
+    if ((_rot >= ROT_MIN) && (_rot <= ROT_MAX))
+      rot = _rot;
+  }
+
+  void set_leds(uint8_t _leds) {
+    leds = _leds;
+  }
+
 
 protected:
   carlink(): 
@@ -62,6 +83,9 @@ protected:
     inmsg = (msg_from_car_t*)buf;
     connected = false;
     loop_running = false;
+    speed = 0;
+    rot = 0;
+    leds = 0;
   }
 
   bool init() {
@@ -70,10 +94,9 @@ protected:
 
   void run() {
     while(loop_running) {
-      // TODO: Fill the real values here
-      msg_to_car.speed = 0;
-      msg_to_car.rot = 0;
-      msg_to_car.leds = 0;
+      msg_to_car.speed = speed;
+      msg_to_car.rot = rot;
+      msg_to_car.leds = leds;
 
       // Send the message
       msg_to_car.serial = serial++;
@@ -118,6 +141,9 @@ protected:
 
       radio.stopListening();
     }
+
+    speed = 0;
+    rot = 0;
   }
   
 protected:
@@ -158,6 +184,9 @@ protected:
   bool connected;
   int retries;
   msg_from_car_t* inmsg;
+  int speed;
+  int rot;
+  uint8_t leds;
 
 };
 
@@ -170,10 +199,10 @@ carlink* carlink::instance = NULL;
 struct control_file: 
   public fusekit::iostream_object_file<control_file>::type {
 
-  control_file() : 
+  control_file(carlink& _car) : 
     fusekit::iostream_object_file<control_file>::type(*this),
-    control_fmt("([012345]+)")
-    //control_fmt("(-?[[:digit:]]+),(-?[[:digit:]]+)")
+    control_fmt(CONTROL_REGEX, regex::perl),
+    car(_car)
   {}
 
   int open(fuse_file_info& fi) {
@@ -194,8 +223,10 @@ struct control_file:
 
       // Delimiter found - chop the string into two parts - before
       // the delimiter (for processing) and after the delimiter
-      string line = buf.substr(0, i);
-      parse(line);
+      if (i > 0) {
+	string line = buf.substr(0, i);
+	parse(line);
+      }
 
       // Store the rest of the string back in the buffer
       buf = buf.substr(i+1);
@@ -210,18 +241,26 @@ struct control_file:
   }
 
   void parse(string& line) {
-    cout << "got a line: " << line << endl;;
+    //cout << "got a line: " << line << endl;;
     smatch match;
     if (regex_match(line, match, control_fmt) && match.size() > 1) {
-      cout << "match" << endl;
+
+      int speed = stoi(match.str(1));
+      int rot = stoi(match.str(2));
+
+      car.set_speed(speed);
+      car.set_rot(rot);
+
+      //cout << "match speed=" << speed << " rot=" << rot << endl;
     }
     else {
-      cout << "no match" << endl;
+      //cout << "no match" << endl;
     }
   }
 
   regex control_fmt;
   string buf;
+  carlink& car;
 };
 
 std::ostream& operator<<(std::ostream& os, const control_file& f)
@@ -243,16 +282,12 @@ int main( int argc, char* argv[] ){
 
   //car.run();
 
+  carlink& car = carlink::get_instance();
 
-  regex aa("[0-9]");
-  try {
   fusekit::daemon<>& daemon = fusekit::daemon<>::instance();
-  daemon.root().add_file("control", new control_file); 
+  daemon.root().add_file("control", new control_file(car)); 
 
   return daemon.run(argc,argv);
-  }
-  catch(const regex_error& e) {
-    cout << "regex_error " << e.what() << " " << e.code() << endl;
-  }
+
 
 }
