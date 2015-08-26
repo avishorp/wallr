@@ -3,7 +3,10 @@
 #include "protocol.h"
  
 // Dilution of debug print messages
-#define DILUTE 10
+#define DILUTE 100
+
+// The timeout (in mS) after which the car is considered disconnected
+#define MSG_TIMEOUT 200
 
 // ce,csn pins
 RF24 radio(7,8);
@@ -15,6 +18,7 @@ union {
 
 msg_from_car_t msg_from_car;
 bool connected;
+int last_msg_time;
 bool running;
 int speed;
 int rot;
@@ -29,6 +33,7 @@ void setup(void)
 
   // Init variables
   connected = false;
+  last_msg_time = millis();
   running = false;
   speed = 0;
   rot = 0;
@@ -56,9 +61,7 @@ void setup(void)
 void loop(void)
 {
 
-    if (radio.available()) {
-      Serial.println("got something");
-      
+    if (radio.available()) {    
       // Read the packet
       uint8_t size = radio.getDynamicPayloadSize();
       if (size > 32)
@@ -70,7 +73,9 @@ void loop(void)
           (inbuf.msg.magic1 == MAGIC1) &&
           (inbuf.msg.magic2 == MAGIC2)) {
 
-            Serial.println("valid");
+            // We are connected
+            connected = 1;
+            last_msg_time = millis();
 
             // Valid message
             msg_from_car.serial = inbuf.msg.serial;
@@ -83,14 +88,20 @@ void loop(void)
       else
           Serial.println(size, DEC);
     }
+    else {
+      // No message available
+      if ((millis() - last_msg_time) > MSG_TIMEOUT)
+        // Too much time passed since last message - declare no connect
+        connected= 0;
+    }
     
     // Print debug message
     if (debug_dilute == 0) {
       debug_dilute = DILUTE;
       
       static char debug_message[120];
-      sprintf(debug_message, "conn=%d run=%d spd=%d rot=%d left=%d right=%d\n",
-        connected, running, speed, rot, motor_left, motor_right);
+      sprintf(debug_message, "ser=%d conn=%d run=%d spd=%d rot=%d left=%d right=%d\n",
+        inbuf.msg.serial, connected, running, speed, rot, motor_left, motor_right);
       Serial.print(debug_message);
       //radio.printDetails();
 
