@@ -4,9 +4,19 @@
  
 // ce,csn pins
 RF24 radio(7,8);
+
+union {
+  char raw[32];
+  msg_to_car_t msg;
+} inbuf;
+
+msg_from_car_t msg_from_car;
  
 void setup(void)
 {
+  msg_from_car.magic1 = MAGIC1;
+  msg_from_car.magic2 = MAGIC2;
+  
   // Init serial
   Serial.begin(57600);
 
@@ -24,18 +34,35 @@ void setup(void)
   radio.startListening();
 }
 
-char inbuf[32];
- 
 void loop(void)
 {
 
     if (radio.available()) {
       Serial.println("got something");
       
+      // Read the packet
       uint8_t size = radio.getDynamicPayloadSize();
       if (size > 32)
         size = 32;
-      radio.read(inbuf, size);
+      radio.read((void*)&inbuf, size);
+      
+      // Validate it
+      if ((size == sizeof(msg_to_car_t)) &&
+          (inbuf.msg.magic1 == MAGIC1) &&
+          (inbuf.msg.magic2 == MAGIC2)) {
+
+            Serial.println("valid");
+
+            // Valid message
+            msg_from_car.serial = inbuf.msg.serial;
+            
+            radio.stopListening();
+            radio.write((const void*)&msg_from_car, sizeof(msg_from_car_t));
+            radio.startListening();
+          }
+          
+      else
+          Serial.println(size, DEC);
     }
     //radio.printDetails();
 
