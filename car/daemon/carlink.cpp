@@ -20,6 +20,9 @@
 
 using namespace std;
 
+#define NUM_RETRIES 15  // Number of retries with no response tolerated
+                        // until loss-of-connection is declared
+
 RF24 radio(RPI_V2_GPIO_P1_15, RPI_V2_GPIO_P1_24, BCM2835_SPI_SPEED_8MHZ);
 
 bool nrf_init()
@@ -89,6 +92,9 @@ int main( int argc, char* argv[] ){
 
   uint16_t serial = 0;
   uint8_t buf[32];
+  bool connected = false;
+  int retries = NUM_RETRIES;
+  msg_from_car_t* inmsg = (msg_from_car_t*)buf;
 
   while(1) {
     // TODO: Fill the real values here
@@ -99,7 +105,6 @@ int main( int argc, char* argv[] ){
     // Send the message
     msg_to_car.serial = serial++;
     radio.write((const void*)&msg_to_car, sizeof(msg_to_car_t));
-    cout << "message sent" <<endl;
 
     // Turn on listening, waiting for response
     radio.startListening();
@@ -113,16 +118,31 @@ int main( int argc, char* argv[] ){
       radio.read(buf, size);
       
       // Validate the packet
-      if (size == sizeof(msg_from_car_t)) {
-	msg_from_car_t* inmsg = (msg_from_car_t*)buf;
-	if ((inmsg->magic1 == MAGIC1) &&
-	    (inmsg->magic2 == MAGIC2) &&
-	    (inmsg->serial == (serial - 1))) {
-	      // Valid packet
-	      cout << "got response" << endl;
-	    }
+      if ((size == sizeof(msg_from_car_t)) &&
+	  (inmsg->magic1 == MAGIC1) &&
+	  (inmsg->magic2 == MAGIC2) &&
+	  (inmsg->serial == (serial - 1))) {
+	// Valid packet
+	      
+	// Switch to connected state
+	connected = true;	      retries = NUM_RETRIES;
+
+      }
+      else {
+	// Invalid packet
+	if (retries > 0)
+	  retries--;
       }
     }
+    else {
+      if (retries > 0)
+	retries--;
+    }
+
+    if (retries == 0) {
+      connected = false;
+    }
+    cout << connected << endl;
 
     radio.stopListening();
   }
