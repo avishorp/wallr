@@ -2,6 +2,9 @@
 #include <RF24.h>
 #include "protocol.h"
  
+// Dilution of debug print messages
+#define DILUTE 10
+
 // ce,csn pins
 RF24 radio(7,8);
 
@@ -11,11 +14,27 @@ union {
 } inbuf;
 
 msg_from_car_t msg_from_car;
+bool connected;
+bool running;
+int speed;
+int rot;
+int motor_left;
+int motor_right;
+int debug_dilute;
  
 void setup(void)
 {
   msg_from_car.magic1 = MAGIC1;
   msg_from_car.magic2 = MAGIC2;
+
+  // Init variables
+  connected = false;
+  running = false;
+  speed = 0;
+  rot = 0;
+  motor_left = 0;
+  motor_right = 0;
+  debug_dilute = DILUTE;
   
   // Init serial
   Serial.begin(57600);
@@ -64,6 +83,19 @@ void loop(void)
       else
           Serial.println(size, DEC);
     }
-    //radio.printDetails();
+    
+    // Print debug message
+    if (debug_dilute == 0) {
+      debug_dilute = DILUTE;
+      
+      static char debug_message[120];
+      sprintf(debug_message, "conn=%d run=%d spd=%d rot=%d left=%d right=%d\n",
+        connected, running, speed, rot, motor_left, motor_right);
+      Serial.print(debug_message);
+      //radio.printDetails();
+
+    }
+    else
+      debug_dilute--;
 
 }
