@@ -18,13 +18,14 @@ union {
 
 msg_from_car_t msg_from_car;
 bool connected;
-int last_msg_time;
+unsigned int last_msg_time;
 bool running;
-int speed;
-int rot;
+int8_t speed;
+int8_t rot;
+uint8_t leds;
 int motor_left;
 int motor_right;
-int debug_dilute;
+uint8_t debug_dilute;
  
 void setup(void)
 {
@@ -76,6 +77,11 @@ void loop(void)
             // We are connected
             connected = 1;
             last_msg_time = millis();
+            
+            // Set speed, rotation and leds
+            speed = inbuf.msg.speed;
+            rot = inbuf.msg.rot;
+            leds = inbuf.msg.leds;
 
             // Valid message
             msg_from_car.serial = inbuf.msg.serial;
@@ -83,16 +89,17 @@ void loop(void)
             radio.stopListening();
             radio.write((const void*)&msg_from_car, sizeof(msg_from_car_t));
             radio.startListening();
-          }
-          
-      else
-          Serial.println(size, DEC);
+          }         
     }
     else {
       // No message available
-      if ((millis() - last_msg_time) > MSG_TIMEOUT)
+      if ((millis() - last_msg_time) > MSG_TIMEOUT) {
         // Too much time passed since last message - declare no connect
+        // and stop any motion
         connected= 0;
+        speed = 0;
+        rot = 0;
+      }
     }
     
     // Print debug message
