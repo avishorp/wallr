@@ -23,32 +23,115 @@ using namespace std;
 #define NUM_RETRIES 15  // Number of retries with no response tolerated
                         // until loss-of-connection is declared
 
-RF24 radio(RPI_V2_GPIO_P1_15, RPI_V2_GPIO_P1_24, BCM2835_SPI_SPEED_8MHZ);
+class carlink {
 
-bool nrf_init()
-{
-  // init radio for reading
-  if (!radio.begin()) {
-    cerr << "nRF begin() failed" << endl;
-    return false;
+public:
+  carlink(): 
+    radio(RPI_V2_GPIO_P1_15, RPI_V2_GPIO_P1_24, BCM2835_SPI_SPEED_8MHZ) {
+    msg_to_car.magic1 = MAGIC1;
+    msg_to_car.magic2 = MAGIC2;
+    serial = 0;
+    retries = 0;
+    inmsg = (msg_from_car_t*)buf;
+    connected = false;
   }
 
-  radio.enableDynamicPayloads();
-  radio.setAutoAck(0);
-  radio.setDataRate(RF24_1MBPS);
-  radio.setPALevel(RF24_PA_MAX);
-  radio.setChannel(NRF_CHANNEL);
-  radio.setCRCLength(RF24_CRC_16);
-  radio.openReadingPipe(1, NRF_CAR_ADDR);
-  radio.openWritingPipe(NRF_PI_ADDR);
-  radio.powerUp();
+  bool init() {
+    return nrf_init();
+  }
+
+  void run() {
+    while(1) {
+      // TODO: Fill the real values here
+      msg_to_car.speed = 0;
+      msg_to_car.rot = 0;
+      msg_to_car.leds = 0;
+
+      // Send the message
+      msg_to_car.serial = serial++;
+      radio.write((const void*)&msg_to_car, sizeof(msg_to_car_t));
+
+      // Turn on listening, waiting for response
+      radio.startListening();
+
+      // Sleep for ~10mS
+      usleep(10*1000);
+
+      // Check for response
+      if (radio.available()) {
+       int size = radio.getDynamicPayloadSize();
+	radio.read(buf, size);
+      
+	// Validate the packet
+	if ((size == sizeof(msg_from_car_t)) &&
+	    (inmsg->magic1 == MAGIC1) &&
+	    (inmsg->magic2 == MAGIC2) &&
+	    (inmsg->serial == (serial - 1))) {
+	  // Valid packet
+	      
+	  // Switch to connected state
+	  connected = true;	      retries = NUM_RETRIES;
+
+	}
+	else {
+	  // Invalid packet
+	  if (retries > 0)
+	    retries--;
+	}
+      }
+      else {
+	if (retries > 0)
+	  retries--;
+      }
+
+      if (retries == 0) {
+	connected = false;
+      }
+      cout << connected << endl;
+
+      radio.stopListening();
+    }
+  }
+  
+protected:
+  bool nrf_init()
+  {
+    // init radio for reading
+    if (!radio.begin()) {
+      cerr << "nRF begin() failed" << endl;
+      return false;
+    }
+    
+    radio.enableDynamicPayloads();
+    radio.setAutoAck(0);
+    radio.setDataRate(RF24_1MBPS);
+    radio.setPALevel(RF24_PA_MAX);
+    radio.setChannel(NRF_CHANNEL);
+    radio.setCRCLength(RF24_CRC_16);
+    radio.openReadingPipe(1, NRF_CAR_ADDR);
+    radio.openWritingPipe(NRF_PI_ADDR);
+    radio.powerUp();
 
 #ifdef DEBUG
-  radio.printDetails();
+    radio.printDetails();
 #endif
 
-  return true;
-}
+    return true;
+  }
+
+  RF24 radio;
+  msg_to_car_t msg_to_car;
+  msg_from_car_t msg_from_car;
+  uint16_t serial;
+  uint8_t buf[32];
+  bool connected;
+  int retries;
+  msg_from_car_t* inmsg;
+
+};
+
+  carlink car;
+
 
 /// free function which will be called
 /// when the virtual file "hello.txt" is read
@@ -68,8 +151,10 @@ int hello( std::ostream& os ){
 /// $ mkdir hello_mnt
 /// $ hellofs hello_mnt
 int main( int argc, char* argv[] ){
-  if (!nrf_init())
+  if (!car.init())
     return -1;
+
+  car.run();
 
   /*
   fusekit::daemon<>& daemon = fusekit::daemon<>::instance();
@@ -84,68 +169,7 @@ int main( int argc, char* argv[] ){
   return daemon.run(argc,argv);
   */
 
-  msg_to_car_t msg_to_car;
-  msg_from_car_t msg_from_car;
 
-  msg_to_car.magic1 = MAGIC1;
-  msg_to_car.magic2 = MAGIC2;
-
-  uint16_t serial = 0;
-  uint8_t buf[32];
-  bool connected = false;
-  int retries = NUM_RETRIES;
-  msg_from_car_t* inmsg = (msg_from_car_t*)buf;
-
-  while(1) {
-    // TODO: Fill the real values here
-    msg_to_car.speed = 0;
-    msg_to_car.rot = 0;
-    msg_to_car.leds = 0;
-
-    // Send the message
-    msg_to_car.serial = serial++;
-    radio.write((const void*)&msg_to_car, sizeof(msg_to_car_t));
-
-    // Turn on listening, waiting for response
-    radio.startListening();
-
-    // Sleep for ~10mS
-    usleep(10*1000);
-
-    // Check for response
-    if (radio.available()) {
-      int size = radio.getDynamicPayloadSize();
-      radio.read(buf, size);
-      
-      // Validate the packet
-      if ((size == sizeof(msg_from_car_t)) &&
-	  (inmsg->magic1 == MAGIC1) &&
-	  (inmsg->magic2 == MAGIC2) &&
-	  (inmsg->serial == (serial - 1))) {
-	// Valid packet
-	      
-	// Switch to connected state
-	connected = true;	      retries = NUM_RETRIES;
-
-      }
-      else {
-	// Invalid packet
-	if (retries > 0)
-	  retries--;
-      }
-    }
-    else {
-      if (retries > 0)
-	retries--;
-    }
-
-    if (retries == 0) {
-      connected = false;
-    }
-    cout << connected << endl;
-
-    radio.stopListening();
-  }
 
   return 0;
 }
