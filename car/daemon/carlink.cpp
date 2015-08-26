@@ -16,10 +16,12 @@
 #include <fusekit/daemon.h>
 #include <fusekit/stream_object_file.h>
 #include <thread>
+#include <boost/regex.hpp>
 #include "RF24.h"
 #include "../car_firmware/protocol.h"
 
 using namespace std;
+using namespace boost;
 
 #define NUM_RETRIES 15  // Number of retries with no response tolerated
                         // until loss-of-connection is declared
@@ -168,7 +170,10 @@ carlink* carlink::instance = NULL;
 struct control_file: 
   public fusekit::iostream_object_file<control_file>::type {
 
-  control_file() : fusekit::iostream_object_file<control_file>::type(*this)
+  control_file() : 
+    fusekit::iostream_object_file<control_file>::type(*this),
+    control_fmt("([012345]+)")
+    //control_fmt("(-?[[:digit:]]+),(-?[[:digit:]]+)")
   {}
 
   int open(fuse_file_info& fi) {
@@ -176,11 +181,47 @@ struct control_file:
     return fusekit::iostream_object_file<control_file>::type::open(fi);
   }
 
+  int write(const char* src, size_t size, 
+	    off_t offset, struct fuse_file_info& fi) {
+
+    // Write the new data into the file. We assume always-append,
+    // so the offset argument is ignored
+    buf += src;
+
+    // Look for the end-of-line delimiter(s)
+    size_t i;
+    while((i = buf.find('\n')) != string::npos) {
+
+      // Delimiter found - chop the string into two parts - before
+      // the delimiter (for processing) and after the delimiter
+      string line = buf.substr(0, i);
+      parse(line);
+
+      // Store the rest of the string back in the buffer
+      buf = buf.substr(i+1);
+    }
+
+    return size;
+  }
+
   int release(fuse_file_info& fi) {
     carlink::get_instance().stop();
     return fusekit::iostream_object_file<control_file>::type::release(fi);
   }
 
+  void parse(string& line) {
+    cout << "got a line: " << line << endl;;
+    smatch match;
+    if (regex_match(line, match, control_fmt) && match.size() > 1) {
+      cout << "match" << endl;
+    }
+    else {
+      cout << "no match" << endl;
+    }
+  }
+
+  regex control_fmt;
+  string buf;
 };
 
 std::ostream& operator<<(std::ostream& os, const control_file& f)
@@ -196,14 +237,22 @@ std::istream& operator>>(std::istream& is, control_file& f) {
 
 int main( int argc, char* argv[] ){
 
+  cout << "running" << endl;
   //if (!car.init())
   //  return -1;
 
   //car.run();
 
 
+  regex aa("[0-9]");
+  try {
   fusekit::daemon<>& daemon = fusekit::daemon<>::instance();
   daemon.root().add_file("control", new control_file); 
 
   return daemon.run(argc,argv);
+  }
+  catch(const regex_error& e) {
+    cout << "regex_error " << e.what() << " " << e.code() << endl;
+  }
+
 }
