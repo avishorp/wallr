@@ -15,5 +15,5 @@ CPPFLAGS = -D_FILE_OFFSET_BITS=64 -I/usr/include/fuse \
    -I$(FUSEKIT_DIR)/include -DFUSE_USE_VERSION=27
 LDFLAGS = -Lfusekit
 
-carlink: $(SOURCES) $(NRF_DEPS)
+carlink: $(SOURCES) $(NRF_DEPS) ../car_firmware/protocol.h
 	g++ $(SOURCES) -o $@ $(CPPFLAGS) $(LDFLAGS) -lfuse

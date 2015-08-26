@@ -87,6 +87,9 @@ int main( int argc, char* argv[] ){
   msg_to_car.magic1 = MAGIC1;
   msg_to_car.magic2 = MAGIC2;
 
+  uint16_t serial = 0;
+  uint8_t buf[32];
+
   while(1) {
     // TODO: Fill the real values here
     msg_to_car.speed = 0;
@@ -94,7 +97,9 @@ int main( int argc, char* argv[] ){
     msg_to_car.leds = 0;
 
     // Send the message
+    msg_to_car.serial = serial++;
     radio.write((const void*)&msg_to_car, sizeof(msg_to_car_t));
+    cout << "message sent" <<endl;
 
     // Turn on listening, waiting for response
     radio.startListening();
@@ -103,7 +108,22 @@ int main( int argc, char* argv[] ){
     usleep(10*1000);
 
     // Check for response
-    // TODO
+    if (radio.available()) {
+      int size = radio.getDynamicPayloadSize();
+      radio.read(buf, size);
+      
+      // Validate the packet
+      if (size == sizeof(msg_from_car_t)) {
+	msg_from_car_t* inmsg = (msg_from_car_t*)buf;
+	if ((inmsg->magic1 == MAGIC1) &&
+	    (inmsg->magic2 == MAGIC2) &&
+	    (inmsg->serial == (serial - 1))) {
+	      // Valid packet
+	      cout << "got response" << endl;
+	    }
+      }
+    }
+
     radio.stopListening();
   }
 
