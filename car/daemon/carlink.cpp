@@ -88,6 +88,14 @@ public:
     return battery;
   }
 
+  unsigned int get_valid_count() const {
+    return valid_count;
+  }
+
+  unsigned int get_invalid_count() const {
+    return invalid_count;
+  }
+
 
 protected:
   carlink(): 
@@ -103,6 +111,8 @@ protected:
     speed = 0;
     rot = 0;
     leds = 0;
+    valid_count = 0;
+    invalid_count = 0;
   }
 
   bool init() {
@@ -136,6 +146,7 @@ protected:
 	    (inmsg->magic2 == MAGIC2) &&
 	    (inmsg->serial == (serial - 1))) {
 	  // Valid packet
+	  valid_count++;
 	      
 	  // Switch to connected state
 	  connected = true;	      retries = NUM_RETRIES;
@@ -144,6 +155,7 @@ protected:
 
 	}
 	else {
+	  invalid_count++;
 	  // Invalid packet
 	  if (retries > 0)
 	    retries--;
@@ -184,9 +196,9 @@ protected:
     radio.openWritingPipe(NRF_PI_ADDR);
     radio.powerUp();
 
-#ifdef DEBUG
+    //#ifdef DEBUG
     radio.printDetails();
-#endif
+    //#endif
 
     return true;
   }
@@ -208,6 +220,8 @@ protected:
   int speed;
   int rot;
   uint8_t leds;
+  unsigned int valid_count;
+  unsigned int invalid_count;
 
 };
 
@@ -296,6 +310,7 @@ std::istream& operator>>(std::istream& is, control_file& f) {
 
 // Functions to read the car state
 // and convert it to strings
+//////////////////////////////////
 int f_is_connected(ostream& os) {
   carlink& car = carlink::get_instance();
   os << car.is_connected();
@@ -322,6 +337,18 @@ int f_battery(ostream& os) {
   return 0;
 }
 
+int f_valid_count(ostream& os) {
+  carlink& car = carlink::get_instance();
+  os << car.get_valid_count();
+  return 0;
+}
+
+int f_invalid_count(ostream& os) {
+  carlink& car = carlink::get_instance();
+  os << car.get_invalid_count();
+  return 0;
+}
+
 int main( int argc, char* argv[] ){
 
   cout << "running" << endl;
@@ -340,6 +367,10 @@ int main( int argc, char* argv[] ){
 	 fusekit::make_ostream_callback_file(f_is_running));
   daemon.root().add_file("battery", 
 	 fusekit::make_ostream_callback_file(f_battery));
+  daemon.root().add_file("valid_count", 
+	 fusekit::make_ostream_callback_file(f_valid_count));
+  daemon.root().add_file("invalid_count", 
+	 fusekit::make_ostream_callback_file(f_invalid_count));
 
   return daemon.run(argc,argv);
 

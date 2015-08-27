@@ -15,7 +15,7 @@ CPPFLAGS =-std=c++0x -D_FILE_OFFSET_BITS=64 -I/usr/include/fuse \
    -I$(FUSEKIT_DIR)/include -DFUSE_USE_VERSION=27
 
 ifdef DEBUG
-CPPFLAGS += -g -O0
+CPPFLAGS += -g -O0 -DDEBUG
 endif
 
 LDFLAGS = -lboost_regex -pthread -Lfusekit
