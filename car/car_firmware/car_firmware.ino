@@ -1,5 +1,7 @@
 #include <SPI.h>
 #include <RF24.h>
+#include <Wire.h>
+#include "BH1750.h"
 #include "protocol.h"
  
 // Dilution of debug print messages
@@ -7,6 +9,10 @@
 
 // The timeout (in mS) after which the car is considered disconnected
 #define MSG_TIMEOUT 200
+
+// Light sensor constants
+#define LIGHT_SAMPLE_RATE_DIVIDER 200
+#define DARK_THRESHOLD 2
 
 // ce,csn pins
 RF24 radio(7,8);
@@ -18,7 +24,7 @@ union {
 
 msg_from_car_t msg_from_car;
 bool connected;
-unsigned int last_msg_time;
+unsigned long last_msg_time;
 bool running;
 int8_t speed;
 int8_t rot;
@@ -26,6 +32,8 @@ uint8_t leds;
 int motor_left;
 int motor_right;
 uint8_t debug_dilute;
+BH1750 light_sensor;
+int light_sensor_samp;
  
 void setup(void)
 {
@@ -44,6 +52,10 @@ void setup(void)
   
   // Init serial
   Serial.begin(57600);
+
+  // Init light sensor
+  light_sensor.begin();
+  light_sensor_samp = LIGHT_SAMPLE_RATE_DIVIDER;
 
   // init radio
   radio.begin();
@@ -85,7 +97,9 @@ void loop(void)
 
             // Valid message
             msg_from_car.serial = inbuf.msg.serial;
-            
+            msg_from_car.battery = 0;  // TODO: Real value
+            msg_from_car.running = running;
+
             radio.stopListening();
             radio.write((const void*)&msg_from_car, sizeof(msg_from_car_t));
             radio.startListening();
@@ -115,5 +129,19 @@ void loop(void)
     }
     else
       debug_dilute--;
+
+    // Light sensor
+    if (light_sensor_samp == 0) {
+      light_sensor_samp = LIGHT_SAMPLE_RATE_DIVIDER;
+
+      // Get a light sensor sample
+      uint16_t ll = light_sensor.readLightLevel();
+      if (ll <= DARK_THRESHOLD)
+        running = 1;
+      else
+        running = 0;
+    }
+    else
+      light_sensor_samp--;
 
 }
