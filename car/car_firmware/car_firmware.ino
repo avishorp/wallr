@@ -21,7 +21,7 @@
 #define MSG_TIMEOUT 200
 
 // Light sensor constants
-#define LIGHT_SAMPLE_RATE_DIVIDER 200
+#define LIGHT_SAMPLE_RATE_DIVIDER 100
 #define DARK_THRESHOLD 2
 
 // ce,csn pins
@@ -56,7 +56,7 @@ void setup(void)
 
   digitalWrite(LEFT_PWM, LOW);
   digitalWrite(RIGHT_PWM, LOW);
-  digitalWrite(SUCTION, HIGH c);
+  digitalWrite(SUCTION, HIGH);
 
   msg_from_car.magic1 = MAGIC1;
   msg_from_car.magic2 = MAGIC2;
@@ -94,14 +94,6 @@ void setup(void)
 
 void loop(void)
 {
-while(1){
-  digitalWrite(LEFT_DIR, LOW);
-  digitalWrite(RIGHT_DIR, LOW);  
-  delay(1500);
-  digitalWrite(LEFT_DIR, HIGH);
-  digitalWrite(RIGHT_DIR, HIGH);  
-  delay(1500);
-}
     if (radio.available()) {    
       // Read the packet
       uint8_t size = radio.getDynamicPayloadSize();
@@ -152,7 +144,7 @@ while(1){
       sprintf(debug_message, "ser=%d conn=%d run=%d spd=%d rot=%d left=%d right=%d\n",
         inbuf.msg.serial, connected, running, speed, rot, motor_left, motor_right);
       Serial.print(debug_message);
-      radio.printDetails();
+      //radio.printDetails();
 
     }
     else
@@ -164,10 +156,14 @@ while(1){
 
       // Get a light sensor sample
       uint16_t ll = light_sensor.readLightLevel();
-      if (ll <= DARK_THRESHOLD)
+      if (ll <= DARK_THRESHOLD) {
         running = 1;
-      else
+        digitalWrite(SUCTION, LOW);
+      }
+      else {
         running = 0;
+        digitalWrite(SUCTION, HIGH);
+      }
     }
     else
       light_sensor_samp--;
