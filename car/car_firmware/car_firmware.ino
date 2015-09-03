@@ -3,7 +3,17 @@
 #include <Wire.h>
 #include "BH1750.h"
 #include "protocol.h"
- 
+
+#define LEFT_PWM   6
+#define LEFT_DIR   8
+#define RIGHT_PWM  5
+#define RIGHT_DIR  4
+#define LED1       2
+#define LED2       7
+#define SUCTION    3
+#define NRF_CE     9
+#define NRF_CSN    10
+
 // Dilution of debug print messages
 #define DILUTE 100
 
@@ -15,7 +25,7 @@
 #define DARK_THRESHOLD 2
 
 // ce,csn pins
-RF24 radio(7,8);
+RF24 radio(NRF_CE, NRF_CSN);
 
 union {
   char raw[32];
@@ -37,6 +47,17 @@ int light_sensor_samp;
  
 void setup(void)
 {
+  // Inputs and outputs
+  pinMode(LEFT_PWM, OUTPUT);
+  pinMode(LEFT_DIR, OUTPUT);
+  pinMode(RIGHT_PWM, OUTPUT);
+  pinMode(RIGHT_DIR, OUTPUT);
+  pinMode(SUCTION, OUTPUT);
+
+  digitalWrite(LEFT_PWM, LOW);
+  digitalWrite(RIGHT_PWM, LOW);
+  digitalWrite(SUCTION, HIGH c);
+
   msg_from_car.magic1 = MAGIC1;
   msg_from_car.magic2 = MAGIC2;
 
@@ -64,7 +85,7 @@ void setup(void)
   radio.setCRCLength(RF24_CRC_16);
   radio.setChannel(NRF_CHANNEL);
   radio.openReadingPipe(1, NRF_PI_ADDR);
-  //radio.openWritingPipe(NRF_CAR_ADDR);
+  radio.openWritingPipe(NRF_CAR_ADDR);
   radio.enableDynamicPayloads();
   radio.setAutoAck(0);
   radio.powerUp();
@@ -73,7 +94,14 @@ void setup(void)
 
 void loop(void)
 {
-
+while(1){
+  digitalWrite(LEFT_DIR, LOW);
+  digitalWrite(RIGHT_DIR, LOW);  
+  delay(1500);
+  digitalWrite(LEFT_DIR, HIGH);
+  digitalWrite(RIGHT_DIR, HIGH);  
+  delay(1500);
+}
     if (radio.available()) {    
       // Read the packet
       uint8_t size = radio.getDynamicPayloadSize();
@@ -124,7 +152,7 @@ void loop(void)
       sprintf(debug_message, "ser=%d conn=%d run=%d spd=%d rot=%d left=%d right=%d\n",
         inbuf.msg.serial, connected, running, speed, rot, motor_left, motor_right);
       Serial.print(debug_message);
-      //radio.printDetails();
+      radio.printDetails();
 
     }
     else
