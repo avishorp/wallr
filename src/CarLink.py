@@ -101,12 +101,15 @@ if __name__=='__main__':
                 print carlink.joystick.get_axis(0)
                 carlink.update_axes()
 
-        if p==30:
+        if p==20000:
             p = 0
             c = carlink.isconnected()
             if c:
-                print carlink.isrunning()
-                print carlink.getbattery()
+                try:
+                    print carlink.isrunning()
+                    print carlink.getbattery()
+                except NotConnectedError:
+                    pass
             else:
                 print "Not connected"
 
