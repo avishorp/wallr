@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 744.09448819 1052.3622047"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="icons.svg"
+   inkscape:export-filename="/home/local/projects/wallr/res/car_norun.png"
+   inkscape:export-xdpi="29.870001"
+   inkscape:export-ydpi="29.870001">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.7"
+     inkscape:cx="629.25732"
+     inkscape:cy="720.89287"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1016"
+     inkscape:window-x="0"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1"
+     showguides="true"
+     inkscape:guide-bbox="true">
+    <sodipodi:guide
+       position="143.44166,537.40117"
+       orientation="1,0"
+       id="guide5233" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:5.03599977;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect5006"
+       width="192.85715"
+       height="192.85715"
+       x="47.142857"
+       y="43.076469"
+       inkscape:export-filename="/home/local/projects/wallr/res/car_nocomm.png"
+       inkscape:export-xdpi="29.870001"
+       inkscape:export-ydpi="29.870001" />
+    <rect
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:6, 2;stroke-dashoffset:0"
+       id="rect5010"
+       width="238.76407"
+       height="241.6212"
+       x="24.1894"
+       y="18.694448" />
+    <g
+       id="g5012"
+       transform="matrix(0.79210327,0,0,0.79210327,-112.89813,-404.86791)"
+       inkscape:export-filename="/home/local/projects/wallr/res/car_nocomm.png"
+       inkscape:export-xdpi="29.870001"
+       inkscape:export-ydpi="29.870001">
+      <g
+         style="fill:#ff0000"
+         id="g3554"
+         transform="matrix(0.72691933,0,0,0.72691933,162.07705,249.34605)">
+        <path
+           inkscape:connector-curvature="0"
+           id="path5534"
+           style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none"
+           d="m 290.61109,594.7957 -70.62176,0 -21.67599,-11.65375 0,-32.8636 138.91278,-12.81913 0,42.88583 -46.61503,9.08992 0,5.36073 z" />
+        <path
+           inkscape:connector-curvature="0"
+           id="path5536"
+           style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none"
+           d="m 65.22745,640.14176 318.38061,0.56974 -0.0533,-59.20108 -91.31212,20.04446 -132.85282,0 -94.16235,25.17211 c -5.54704,2.24346 -7.3857,13.41477 0,13.41477 z" />
+        <path
+           inkscape:connector-curvature="0"
+           id="path1874"
+           style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 155.81493,666.86299 c -3e-5,11.30705 -9.15117,20.48115 -20.45818,20.50952 -11.30701,0.0284 -20.50407,-9.09969 -20.56084,-20.4066 -0.0568,-11.3069 9.04816,-20.52686 20.35489,-20.61203 11.30672,-0.0852 20.54952,8.99658 20.66309,20.30305" />
+        <path
+           inkscape:connector-curvature="0"
+           id="path1876"
+           style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 201.97733,666.86299 c -3e-5,11.30705 -9.15117,20.48115 -20.45818,20.50952 -11.30701,0.0284 -20.50407,-9.09969 -20.56084,-20.4066 -0.0568,-11.3069 9.04816,-20.52686 20.35489,-20.61203 11.30672,-0.0852 20.54952,8.99658 20.66309,20.30305" />
+        <path
+           inkscape:connector-curvature="0"
+           id="path1880"
+           style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 247.33033,666.86299 c -3e-5,11.30705 -9.15117,20.48115 -20.45818,20.50952 -11.30701,0.0284 -20.50407,-9.09969 -20.56084,-20.4066 -0.0568,-11.3069 9.04816,-20.52686 20.35489,-20.61203 11.30672,-0.0852 20.54952,8.99658 20.66309,20.30305" />
+        <path
+           inkscape:connector-curvature="0"
+           id="path3511"
+           style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 293.76333,666.86299 c -3e-5,11.30705 -9.15117,20.48115 -20.45818,20.50952 -11.30701,0.0284 -20.50407,-9.09969 -20.56084,-20.4066 -0.0568,-11.3069 9.04816,-20.52686 20.35489,-20.61203 11.30672,-0.0852 20.54952,8.99658 20.66309,20.30305" />
+        <path
+           inkscape:connector-curvature="0"
+           id="path1890"
+           style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none"
+           d="m 83.75265,646.62921 -9.5625,0.4375 c -5.32566,13.2481 -0.88992,25.37037 13.75,34.34375 16.49748,10.11194 36.32098,19.84936 42.0625,20 l 195.0625,0.0625 c 5.74152,-0.15064 25.56503,-9.88804 42.0625,-20 14.63992,-8.97338 19.07566,-21.1269 13.75,-34.375 l -9.5625,-0.40625 c 2.87764,12.39545 5.36125,20.76159 -12.5625,29.25 -14.66994,6.94744 -30.17637,15.21816 -32.59375,15.71875 l -197.25,-0.0312 c -2.41737,-0.50061 -17.89256,-8.80256 -32.5625,-15.75 -17.92375,-8.4884 -15.47139,-16.85455 -12.59375,-29.25 z m -23.30406,-90.04305 0,13.58752 133.19884,4.52917 0,-18.32256 -133.19884,0.20587 z" />
+        <path
+           inkscape:connector-curvature="0"
+           id="path1884"
+           style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 339.83623,667.93559 c -3e-5,11.30705 -9.15117,20.48115 -20.45818,20.50952 -11.30701,0.0284 -20.50407,-9.09969 -20.56084,-20.4066 -0.0568,-11.3069 9.04816,-20.52686 20.35489,-20.61203 11.30672,-0.0852 20.54952,8.99658 20.66309,20.30305" />
+        <path
+           inkscape:connector-curvature="0"
+           id="path1886"
+           style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 368.27196,658.40424 c -2e-5,6.44528 -5.21638,11.67474 -11.66165,11.69091 -6.44527,0.0162 -11.68781,-5.18704 -11.72017,-11.63225 -0.0324,-6.4452 5.15767,-11.7008 11.60277,-11.74935 6.44511,-0.0486 11.71372,5.12827 11.77846,11.57323" />
+        <path
+           inkscape:connector-curvature="0"
+           id="path1888"
+           style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           d="m 110.01126,658.40424 c -2e-5,6.44528 -5.21638,11.67474 -11.66165,11.69091 -6.44527,0.0162 -11.68781,-5.18704 -11.72017,-11.63225 -0.03236,-6.4452 5.15767,-11.7008 11.60277,-11.74935 6.44511,-0.0486 11.71372,5.12827 11.77846,11.57323" />
+      </g>
+      <rect
+         transform="matrix(0.81170358,0.5840696,-0.5840696,0.81170358,0,0)"
+         y="280.90451"
+         x="655.9165"
+         height="200.05995"
+         width="22.20281"
+         id="rect4963"
+         style="fill:#ff0000;fill-opacity:1;stroke:#ffffff;stroke-width:9.26176071;stroke-miterlimit:4;stroke-dasharray:none" />
+    </g>
+    <rect
+       y="43.076469"
+       x="342.85715"
+       height="192.85715"
+       width="192.85715"
+       id="rect5026"
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:5.03599977;stroke-miterlimit:4;stroke-dasharray:none"
+       inkscape:export-filename="/home/local/projects/wallr/res/car_norun.png"
+       inkscape:export-xdpi="29.870001"
+       inkscape:export-ydpi="29.870001" />
+    <rect
+       y="18.694448"
+       x="319.90369"
+       height="241.6212"
+       width="238.76407"
+       id="rect5030"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:6, 2;stroke-dashoffset:0" />
+    <g
+       id="g5063"
+       transform="matrix(0.82782538,0,0,0.76725396,690.08553,-293.92308)"
+       inkscape:export-filename="/home/local/projects/wallr/res/car_norun.png"
+       inkscape:export-xdpi="29.870001"
+       inkscape:export-ydpi="29.870001">
+      <g
+         transform="matrix(0,0.72691933,0.72691933,0,-788.45952,401.84648)"
+         id="g4965"
+         style="fill:#ff0000">
+        <path
+           d="m 290.61109,594.7957 -70.62176,0 -21.67599,-11.65375 0,-32.8636 138.91278,-12.81913 0,42.88583 -46.61503,9.08992 0,5.36073 z"
+           style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none"
+           id="path4967"
+           inkscape:connector-curvature="0" />
+        <path
+           d="m 65.22745,640.14176 318.38061,0.56974 -0.0533,-59.20108 -91.31212,20.04446 -132.85282,0 -94.16235,25.17211 c -5.54704,2.24346 -7.3857,13.41477 0,13.41477 z"
+           style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none"
+           id="path4969"
+           inkscape:connector-curvature="0" />
+        <path
+           d="m 155.81493,666.86299 c -3e-5,11.30705 -9.15117,20.48115 -20.45818,20.50952 -11.30701,0.0284 -20.50407,-9.09969 -20.56084,-20.4066 -0.0568,-11.3069 9.04816,-20.52686 20.35489,-20.61203 11.30672,-0.0852 20.54952,8.99658 20.66309,20.30305"
+           style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           id="path4971"
+           inkscape:connector-curvature="0" />
+        <path
+           d="m 201.97733,666.86299 c -3e-5,11.30705 -9.15117,20.48115 -20.45818,20.50952 -11.30701,0.0284 -20.50407,-9.09969 -20.56084,-20.4066 -0.0568,-11.3069 9.04816,-20.52686 20.35489,-20.61203 11.30672,-0.0852 20.54952,8.99658 20.66309,20.30305"
+           style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           id="path4973"
+           inkscape:connector-curvature="0" />
+        <path
+           d="m 247.33033,666.86299 c -3e-5,11.30705 -9.15117,20.48115 -20.45818,20.50952 -11.30701,0.0284 -20.50407,-9.09969 -20.56084,-20.4066 -0.0568,-11.3069 9.04816,-20.52686 20.35489,-20.61203 11.30672,-0.0852 20.54952,8.99658 20.66309,20.30305"
+           style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           id="path4975"
+           inkscape:connector-curvature="0" />
+        <path
+           d="m 293.76333,666.86299 c -3e-5,11.30705 -9.15117,20.48115 -20.45818,20.50952 -11.30701,0.0284 -20.50407,-9.09969 -20.56084,-20.4066 -0.0568,-11.3069 9.04816,-20.52686 20.35489,-20.61203 11.30672,-0.0852 20.54952,8.99658 20.66309,20.30305"
+           style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           id="path4977"
+           inkscape:connector-curvature="0" />
+        <path
+           d="m 83.75265,646.62921 -9.5625,0.4375 c -5.32566,13.2481 -0.88992,25.37037 13.75,34.34375 16.49748,10.11194 36.32098,19.84936 42.0625,20 l 195.0625,0.0625 c 5.74152,-0.15064 25.56503,-9.88804 42.0625,-20 14.63992,-8.97338 19.07566,-21.1269 13.75,-34.375 l -9.5625,-0.40625 c 2.87764,12.39545 5.36125,20.76159 -12.5625,29.25 -14.66994,6.94744 -30.17637,15.21816 -32.59375,15.71875 l -197.25,-0.0312 c -2.41737,-0.50061 -17.89256,-8.80256 -32.5625,-15.75 -17.92375,-8.4884 -15.47139,-16.85455 -12.59375,-29.25 z m -23.30406,-90.04305 0,13.58752 133.19884,4.52917 0,-18.32256 -133.19884,0.20587 z"
+           style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none"
+           id="path4979"
+           inkscape:connector-curvature="0" />
+        <path
+           d="m 339.83623,667.93559 c -3e-5,11.30705 -9.15117,20.48115 -20.45818,20.50952 -11.30701,0.0284 -20.50407,-9.09969 -20.56084,-20.4066 -0.0568,-11.3069 9.04816,-20.52686 20.35489,-20.61203 11.30672,-0.0852 20.54952,8.99658 20.66309,20.30305"
+           style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           id="path4981"
+           inkscape:connector-curvature="0" />
+        <path
+           d="m 368.27196,658.40424 c -2e-5,6.44528 -5.21638,11.67474 -11.66165,11.69091 -6.44527,0.0162 -11.68781,-5.18704 -11.72017,-11.63225 -0.0324,-6.4452 5.15767,-11.7008 11.60277,-11.74935 6.44511,-0.0486 11.71372,5.12827 11.77846,11.57323"
+           style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           id="path4983"
+           inkscape:connector-curvature="0" />
+        <path
+           d="m 110.01126,658.40424 c -2e-5,6.44528 -5.21638,11.67474 -11.66165,11.69091 -6.44527,0.0162 -11.68781,-5.18704 -11.72017,-11.63225 -0.03236,-6.4452 5.15767,-11.7008 11.60277,-11.74935 6.44511,-0.0486 11.71372,5.12827 11.77846,11.57323"
+           style="fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           id="path4985"
+           inkscape:connector-curvature="0" />
+      </g>
+      <rect
+         y="448.7908"
+         x="-225.71429"
+         height="237.14285"
+         width="7.1428571"
+         id="rect5058"
+         style="fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:6, 2;stroke-dashoffset:0" />
+      <path
+         sodipodi:nodetypes="ccccc"
+         inkscape:connector-curvature="0"
+         id="path5060"
+         d="m -264.62208,606.06843 0,-42.27764 0,-42.27765 29.45865,42.27765 z"
+         inkscape:transform-center-x="-12.204506"
+         style="fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:6, 2;stroke-dashoffset:0" />
+    </g>
+    <rect
+       y="325.91919"
+       x="47.142857"
+       height="192.85715"
+       width="192.85715"
+       id="rect5078"
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:5.03599977;stroke-miterlimit:4;stroke-dasharray:none"
+       inkscape:export-filename="/home/local/projects/wallr/res/car_battery1.png"
+       inkscape:export-xdpi="29.870001"
+       inkscape:export-ydpi="29.870001" />
+    <rect
+       y="301.53717"
+       x="24.1894"
+       height="241.6212"
+       width="238.76407"
+       id="rect5080"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:6, 2;stroke-dashoffset:0" />
+    <g
+       id="g5228"
+       transform="matrix(1.1793206,0,0,1.1793206,416.60743,-43.517054)"
+       inkscape:export-filename="/home/local/projects/wallr/res/car_battery1.png"
+       inkscape:export-xdpi="29.870001"
+       inkscape:export-ydpi="29.870001">
+      <path
+         id="path4200"
+         d="m -248.26646,324.06047 0,17.14258 -23.5703,0 0,124.28516 80,0 0,-124.28516 -22.8574,0 0,-17.14258 -33.5723,0 z"
+         style="fill:none;fill-opacity:1;stroke:#ff0000;stroke-width:5.03599977;stroke-miterlimit:4;stroke-dasharray:none"
+         inkscape:connector-curvature="0" />
+      <rect
+         y="441.91766"
+         x="-263.97986"
+         height="16.428589"
+         width="65.714287"
+         id="rect4202"
+         style="fill:#ff0000;fill-opacity:1;stroke:#ff0000;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none" />
+      <rect
+         style="fill:#ff0000;fill-opacity:1;stroke:#ff0000;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none"
+         id="rect4246"
+         width="65.714287"
+         height="16.428589"
+         x="-263.97986"
+         y="441.91766" />
+    </g>
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:5.03599977;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect5240"
+       width="192.85715"
+       height="192.85715"
+       x="47.142857"
+       y="604.72131"
+       inkscape:export-filename="/home/local/projects/wallr/res/car_battery2.png"
+       inkscape:export-xdpi="29.870001"
+       inkscape:export-ydpi="29.870001" />
+    <rect
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:6, 2;stroke-dashoffset:0"
+       id="rect5242"
+       width="238.76407"
+       height="241.6212"
+       x="24.1894"
+       y="580.33929" />
+    <g
+       id="g5235"
+       transform="matrix(1.1802119,0,0,1.1741007,-1179.5019,542.6624)"
+       inkscape:export-filename="/home/local/projects/wallr/res/car_battery2.png"
+       inkscape:export-xdpi="29.870001"
+       inkscape:export-ydpi="29.870001">
+      <path
+         inkscape:connector-curvature="0"
+         style="fill:none;fill-opacity:1;stroke:#d4aa00;stroke-width:5.03599977;stroke-miterlimit:4;stroke-dasharray:none"
+         d="m 1104.3329,63.441115 0,17.14258 -23.5703,0 0,124.285155 80,0 0,-124.285155 -22.8574,0 0,-17.14258 -33.5723,0 z"
+         id="path4192" />
+      <rect
+         style="fill:#d4aa00;fill-opacity:1;stroke:#d4aa00;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none"
+         id="rect4194"
+         width="65.714287"
+         height="16.428589"
+         x="1088.6195"
+         y="181.29829" />
+      <rect
+         y="158.08403"
+         x="1088.6195"
+         height="16.428589"
+         width="65.714287"
+         id="rect4196"
+         style="fill:#d4aa00;fill-opacity:1;stroke:#d4aa00;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none" />
+    </g>
+    <rect
+       y="863.32037"
+       x="47.142857"
+       height="192.85715"
+       width="192.85715"
+       id="rect5252"
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:5.03599977;stroke-miterlimit:4;stroke-dasharray:none"
+       inkscape:export-filename="/home/local/projects/wallr/res/car_battery3.png"
+       inkscape:export-xdpi="29.870001"
+       inkscape:export-ydpi="29.870001" />
+    <rect
+       y="838.93835"
+       x="24.1894"
+       height="241.6212"
+       width="238.76407"
+       id="rect5254"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:6, 2;stroke-dashoffset:0" />
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:5.03599977;stroke-miterlimit:4;stroke-dasharray:none"
+       id="rect5264"
+       width="192.85715"
+       height="192.85715"
+       x="47.142857"
+       y="1132.021"
+       inkscape:export-filename="/home/local/projects/wallr/res/car_battery4.png"
+       inkscape:export-xdpi="29.870001"
+       inkscape:export-ydpi="29.870001" />
+    <rect
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:6, 2;stroke-dashoffset:0"
+       id="rect5266"
+       width="238.76407"
+       height="241.6212"
+       x="24.1894"
+       y="1107.6389" />
+    <rect
+       y="1388.5997"
+       x="47.142857"
+       height="192.85715"
+       width="192.85715"
+       id="rect5276"
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:5.03599977;stroke-miterlimit:4;stroke-dasharray:none"
+       inkscape:export-filename="/home/local/projects/wallr/res/car_battery5.png"
+       inkscape:export-xdpi="29.870001"
+       inkscape:export-ydpi="29.870001" />
+    <rect
+       y="1364.2177"
+       x="24.1894"
+       height="241.6212"
+       width="238.76407"
+       id="rect5278"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:6, 2;stroke-dashoffset:0" />
+    <g
+       id="g5301"
+       transform="matrix(1.1754267,0,0,1.1776872,-810.79959,1326.2461)"
+       inkscape:export-filename="/home/local/projects/wallr/res/car_battery5.png"
+       inkscape:export-xdpi="29.870001"
+       inkscape:export-ydpi="29.870001">
+      <path
+         inkscape:connector-curvature="0"
+         id="rect4136"
+         d="m 795.04719,63.441115 0,17.14258 -23.57031,0 0,124.285155 80,0 0,-124.285155 -22.85742,0 0,-17.14258 -33.57227,0 z"
+         style="fill:none;fill-opacity:1;stroke:#008000;stroke-width:5.03599977;stroke-miterlimit:4;stroke-dasharray:none" />
+      <rect
+         y="181.29829"
+         x="779.33374"
+         height="16.428589"
+         width="65.714287"
+         id="rect4141"
+         style="fill:#008000;fill-opacity:1;stroke:#008000;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none" />
+      <rect
+         style="fill:#008000;fill-opacity:1;stroke:#008000;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none"
+         id="rect4143"
+         width="65.714287"
+         height="16.428589"
+         x="779.33374"
+         y="158.08403" />
+      <rect
+         y="134.86971"
+         x="779.33374"
+         height="16.428589"
+         width="65.714287"
+         id="rect4145"
+         style="fill:#008000;fill-opacity:1;stroke:#008000;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none" />
+      <rect
+         style="fill:#008000;fill-opacity:1;stroke:#008000;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none"
+         id="rect4147"
+         width="65.714287"
+         height="16.428589"
+         x="779.33374"
+         y="111.65544" />
+      <rect
+         y="88.441147"
+         x="779.33374"
+         height="16.428589"
+         width="65.714287"
+         id="rect4149"
+         style="fill:#008000;fill-opacity:1;stroke:#008000;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none" />
+    </g>
+    <g
+       id="g5294"
+       transform="matrix(1.1754267,0,0,1.1776872,-934.21939,1069.5412)"
+       inkscape:export-filename="/home/local/projects/wallr/res/car_battery4.png"
+       inkscape:export-xdpi="29.870001"
+       inkscape:export-ydpi="29.870001">
+      <path
+         inkscape:connector-curvature="0"
+         style="fill:none;fill-opacity:1;stroke:#008000;stroke-width:5.03599977;stroke-miterlimit:4;stroke-dasharray:none"
+         d="m 900.04719,63.441115 0,17.14258 -23.57031,0 0,124.285155 80,0 0,-124.285155 -22.85742,0 0,-17.14258 -33.57227,0 z"
+         id="path4170" />
+      <rect
+         style="fill:#008000;fill-opacity:1;stroke:#008000;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none"
+         id="rect4172"
+         width="65.714287"
+         height="16.428589"
+         x="884.33374"
+         y="181.29829" />
+      <rect
+         y="158.08403"
+         x="884.33374"
+         height="16.428589"
+         width="65.714287"
+         id="rect4174"
+         style="fill:#008000;fill-opacity:1;stroke:#008000;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none" />
+      <rect
+         style="fill:#008000;fill-opacity:1;stroke:#008000;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none"
+         id="rect4176"
+         width="65.714287"
+         height="16.428589"
+         x="884.33374"
+         y="134.86971" />
+      <rect
+         y="111.65544"
+         x="884.33374"
+         height="16.428589"
+         width="65.714287"
+         id="rect4178"
+         style="fill:#008000;fill-opacity:1;stroke:#008000;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none" />
+    </g>
+    <g
+       id="g5288"
+       inkscape:transform-center-x="56.993275"
+       inkscape:transform-center-y="-254.58374"
+       transform="matrix(1.1754263,0,0,1.1776872,-1058.4784,801.00645)"
+       inkscape:export-filename="/home/local/projects/wallr/res/car_battery3.png"
+       inkscape:export-xdpi="29.870001"
+       inkscape:export-ydpi="29.870001">
+      <path
+         id="path4182"
+         d="m 1005.7615,63.441115 0,17.14258 -23.57033,0 0,124.285155 80.00003,0 0,-124.285155 -22.8575,0 0,-17.14258 -33.5722,0 z"
+         style="fill:none;fill-opacity:1;stroke:#008000;stroke-width:5.03599977;stroke-miterlimit:4;stroke-dasharray:none"
+         inkscape:connector-curvature="0" />
+      <rect
+         y="181.29829"
+         x="990.04803"
+         height="16.428589"
+         width="65.714287"
+         id="rect4184"
+         style="fill:#008000;fill-opacity:1;stroke:#008000;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none" />
+      <rect
+         style="fill:#008000;fill-opacity:1;stroke:#008000;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none"
+         id="rect4186"
+         width="65.714287"
+         height="16.428589"
+         x="990.04803"
+         y="158.08403" />
+      <rect
+         y="134.86971"
+         x="990.04803"
+         height="16.428589"
+         width="65.714287"
+         id="rect4188"
+         style="fill:#008000;fill-opacity:1;stroke:#008000;stroke-width:2.03600001;stroke-miterlimit:4;stroke-dasharray:none" />
+    </g>
+  </g>
+</svg>
