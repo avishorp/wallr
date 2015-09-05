@@ -9,3 +9,10 @@ def save():
     f = open(INIFILE, 'w')
     print >>f, settings
     f.close()
+
+def get_section(name):
+    s = settings[name]
+    if isinstance(s, iniparse.config.Undefined):
+        return None
+    else:
+        return s
