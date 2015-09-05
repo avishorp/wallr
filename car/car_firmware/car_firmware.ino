@@ -13,6 +13,7 @@
 #define SUCTION    3
 #define NRF_CE     9
 #define NRF_CSN    10
+#define BAT_SENSE  2
 
 // Dilution of debug print messages
 #define DILUTE 100
@@ -23,6 +24,9 @@
 // Light sensor constants
 #define LIGHT_SAMPLE_RATE_DIVIDER 100
 #define DARK_THRESHOLD 2
+
+// Number of battery samples for averaging
+#define BATTERY_SAMPLES 8
 
 // ce,csn pins
 RF24 radio(NRF_CE, NRF_CSN);
@@ -44,6 +48,9 @@ int motor_right;
 uint8_t debug_dilute;
 BH1750 light_sensor;
 int light_sensor_samp;
+int battery_level;
+unsigned long battery_sum;
+uint8_t battery_count;
  
 void setup(void)
 {
@@ -70,6 +77,9 @@ void setup(void)
   motor_left = 0;
   motor_right = 0;
   debug_dilute = DILUTE;
+  battery_level = 0;
+  battery_count = BATTERY_SAMPLES;
+  battery_sum = 0;
   
   // Init serial
   Serial.begin(57600);
@@ -117,7 +127,7 @@ void loop(void)
 
             // Valid message
             msg_from_car.serial = inbuf.msg.serial;
-            msg_from_car.battery = 0;  // TODO: Real value
+            msg_from_car.battery = battery_level/2;
             msg_from_car.running = running;
 
             radio.stopListening();
@@ -141,8 +151,8 @@ void loop(void)
       debug_dilute = DILUTE;
       
       static char debug_message[120];
-      sprintf(debug_message, "ser=%d conn=%d run=%d spd=%d rot=%d left=%d right=%d\n",
-        inbuf.msg.serial, connected, running, speed, rot, motor_left, motor_right);
+      sprintf(debug_message, "ser=%d conn=%d run=%d spd=%d rot=%d left=%d right=%d bat=%d\n",
+        inbuf.msg.serial, connected, running, speed, rot, motor_left, motor_right, battery_level);
       Serial.print(debug_message);
       //radio.printDetails();
 
@@ -150,7 +160,7 @@ void loop(void)
     else
       debug_dilute--;
 
-    // Light sensor
+    // Light sensor + battery sample
     if (light_sensor_samp == 0) {
       light_sensor_samp = LIGHT_SAMPLE_RATE_DIVIDER;
 
@@ -164,6 +174,18 @@ void loop(void)
         running = 0;
         digitalWrite(SUCTION, HIGH);
       }
+
+      // Battery - average several readings to get more stable result
+      battery_sum += analogRead(BAT_SENSE);
+      battery_count--;
+
+      if (battery_count == 0) {
+        battery_level = battery_sum / BATTERY_SAMPLES;
+        battery_sum = 0;
+        battery_count = BATTERY_SAMPLES;
+      }
+      battery_level = analogRead(BAT_SENSE);
+      
     }
     else
       light_sensor_samp--;
