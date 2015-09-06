@@ -28,11 +28,21 @@
 // Number of battery samples for averaging
 #define BATTERY_SAMPLES 8
 
+// Motor directions
+#define LEFT_FORWARD   (HIGH)
+#define LEFT_BACKWARD  (LOW)
+#define RIGHT_FORWARD  (LOW)
+#define RIGHT_BACKWARD (HIGH)
+#define SPEED_FACTOR    8
+#define ROTATION_FACTOR 4
+
+#define NRF_RESET_CNT   64
+
 // ce,csn pins
 RF24 radio(NRF_CE, NRF_CSN);
 
 union {
-  char raw[32];
+  char raw[256];
   msg_to_car_t msg;
 } inbuf;
 
@@ -42,6 +52,7 @@ unsigned long last_msg_time;
 bool running;
 int8_t speed;
 int8_t rot;
+uint8_t motion_update;
 uint8_t leds;
 int motor_left;
 int motor_right;
@@ -51,7 +62,23 @@ int light_sensor_samp;
 int battery_level;
 unsigned long battery_sum;
 uint8_t battery_count;
- 
+uint8_t nrf_reset_cnt;
+
+void nrf_reset()
+{
+  radio.powerDown();
+  radio.setPALevel(RF24_PA_MAX);
+  radio.setDataRate(RF24_1MBPS);
+  radio.setCRCLength(RF24_CRC_16);
+  radio.setChannel(NRF_CHANNEL);
+  radio.openReadingPipe(1, NRF_PI_ADDR);
+  radio.openWritingPipe(NRF_CAR_ADDR);
+  radio.enableDynamicPayloads();
+  radio.setAutoAck(0);
+  radio.powerUp();
+  radio.startListening();   
+}
+
 void setup(void)
 {
   // Inputs and outputs
@@ -74,6 +101,7 @@ void setup(void)
   running = false;
   speed = 0;
   rot = 0;
+  motion_update = 0;
   motor_left = 0;
   motor_right = 0;
   debug_dilute = DILUTE;
@@ -90,16 +118,7 @@ void setup(void)
 
   // init radio
   radio.begin();
-  radio.setPALevel(RF24_PA_MAX);
-  radio.setDataRate(RF24_1MBPS);
-  radio.setCRCLength(RF24_CRC_16);
-  radio.setChannel(NRF_CHANNEL);
-  radio.openReadingPipe(1, NRF_PI_ADDR);
-  radio.openWritingPipe(NRF_CAR_ADDR);
-  radio.enableDynamicPayloads();
-  radio.setAutoAck(0);
-  radio.powerUp();
-  radio.startListening();
+  nrf_reset();
 }
 
 void loop(void)
@@ -107,8 +126,8 @@ void loop(void)
     if (radio.available()) {    
       // Read the packet
       uint8_t size = radio.getDynamicPayloadSize();
-      if (size > 32)
-        size = 32;
+      //if (size > 32)
+      //  size = 32;
       radio.read((void*)&inbuf, size);
       
       // Validate it
@@ -124,16 +143,19 @@ void loop(void)
             speed = inbuf.msg.speed;
             rot = inbuf.msg.rot;
             leds = inbuf.msg.leds;
+            motion_update = 1;
 
             // Valid message
             msg_from_car.serial = inbuf.msg.serial;
-            msg_from_car.battery = battery_level/2;
+            msg_from_car.battery = battery_level/4;
             msg_from_car.running = running;
 
             radio.stopListening();
             radio.write((const void*)&msg_from_car, sizeof(msg_from_car_t));
             radio.startListening();
           }         
+          else
+            Serial.println("Invalid!!!");
     }
     else {
       // No message available
@@ -154,7 +176,6 @@ void loop(void)
       sprintf(debug_message, "ser=%d conn=%d run=%d spd=%d rot=%d left=%d right=%d bat=%d\n",
         inbuf.msg.serial, connected, running, speed, rot, motor_left, motor_right, battery_level);
       Serial.print(debug_message);
-      //radio.printDetails();
 
     }
     else
@@ -169,10 +190,14 @@ void loop(void)
       if (ll <= DARK_THRESHOLD) {
         running = 1;
         digitalWrite(SUCTION, LOW);
+        //digitalWrite(SUCTION, HIGH); // For debugging - disable suction at all
       }
       else {
         running = 0;
         digitalWrite(SUCTION, HIGH);
+        speed = 0;
+        rot = 0;
+        motion_update = 1;
       }
 
       // Battery - average several readings to get more stable result
@@ -189,5 +214,53 @@ void loop(void)
     }
     else
       light_sensor_samp--;
+
+    // Handle steering motors
+    if (motion_update) {
+      motion_update = 0;
+
+      // Apply speed
+      motor_left = speed*SPEED_FACTOR;
+      motor_right = speed*SPEED_FACTOR;
+
+      // Apply rotation
+      if (rot > 0) {
+        motor_left += rot*ROTATION_FACTOR;
+        motor_right -= rot*ROTATION_FACTOR;
+      }
+      if (rot < 0) {
+        motor_left -= rot*ROTATION_FACTOR;
+        motor_right += rot*ROTATION_FACTOR;
+      }
+
+      unsigned int ml, mr;
+      if (motor_left > 0) {
+        digitalWrite(LEFT_DIR, LEFT_FORWARD);
+        ml = motor_left;
+      }
+      else {
+        digitalWrite(LEFT_DIR, LEFT_BACKWARD);
+        ml = -motor_left;
+      }
+      if (motor_right > 0) {
+        mr = motor_right;
+        digitalWrite(RIGHT_DIR, RIGHT_FORWARD);
+      }
+      else {
+        digitalWrite(RIGHT_DIR, RIGHT_BACKWARD);
+        mr = -motor_right;
+      }
+
+      // Clip the motor drive to 255
+      if (ml > 255)
+        ml = 255;
+      if (mr > 255)
+        mr = 255;
+
+      // Write the values to the motors
+      analogWrite(LEFT_PWM, ml & 0xff);
+      analogWrite(RIGHT_PWM, mr & 0xff);
+
+    }
 
 }
