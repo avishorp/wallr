@@ -3,6 +3,8 @@ from WallrSettings import settings, get_section
 import os.path, time
 import pygame
 
+CAR_QUERY_RATE = 0.3
+BATTERY_THRSH = [ 145, 141, 137, 133 ]
 
 class NotConnectedError(Exception):
     def __init__(self, *args, **kwargs):
@@ -10,6 +12,9 @@ class NotConnectedError(Exception):
 
 class CarLink:
     def __init__(self, carfs, joystick_num = 0):
+        self.last_update_time = 0
+        self.status = 'nocomm'
+        
         # Check the exsitance of all the required files in carfs
         self.fcontrol = file(os.path.join(carfs, 'control'), 'w')
         self.fnbattery = os.path.join(carfs, 'battery')
@@ -34,6 +39,40 @@ class CarLink:
         self.button_forceacq = int(s['force acq'])
         self.deadzone = float(s['deadzone'])
         #self.speedinv = 
+
+    def update(self):
+
+        if (time.time()-self.last_update_time) > CAR_QUERY_RATE:
+            self.last_update_time = time.time()
+            conn = self.isconnected()
+            if conn:
+                try:
+                    run = self.isrunning()
+                    if run:
+                        bat = self.getbattery()
+                        if bat > BATTERY_THRSH[0]:
+                            self.status = 'battery5'
+                        elif bat > BATTERY_THRSH[1]:
+                            self.status = 'battery4'
+                        elif bat > BATTERY_THRSH[2]:
+                            self.status = 'battery3'
+                        elif bat > BATTERY_THRSH[3]:
+                            self.status = 'battery2'
+                        else:
+                            self.status = 'battery1'
+                    else:
+                        self.status = 'norun'
+
+                except NotConnectedError:
+                    self.status = 'nocomm'
+            else:
+                self.status = 'nocomm'
+
+            print "Status: " + self.status
+            return True
+        else:
+            # No update was done
+            return False
 
     def isconnected(self):
         fconnected = file(self.fnconnected, 'r')
@@ -72,6 +111,12 @@ class CarLink:
         else:
             return int(data)
 
+    def getstatus(self):
+        return self.status
+
+    def getsprite(self, pos):
+        return CarStatusSprite(pos, self)
+
     def move(self, speed = 0, rotation = 0):
         self.fcontrol.write("@%d,%d\n" % (speed, rotation))
         self.fcontrol.flush()
@@ -85,12 +130,47 @@ class CarLink:
             rotation = 0
         self.move(int(speed*32), int(rotation*32))
 
+class CarStatusSprite(pygame.sprite.Sprite):
+    def __init__(self, pos, carlink):
+        pygame.sprite.Sprite.__init__(self)
+        self.carlink = carlink
+        
+        self.icons = {
+            'nocomm': RESOURCES['car_nocomm'].image,
+            'norun': RESOURCES['car_norun'].image,
+            'battery1': RESOURCES['car_battery1'].image,
+            'battery2': RESOURCES['car_battery1'].image,
+            'battery3': RESOURCES['car_battery1'].image,
+            'battery4': RESOURCES['car_battery1'].image,
+            'battery5': RESOURCES['car_battery1'].image }
+        self.image = self.icons['nocomm']
+        self.rect = pygame.Rect(pos, self.icons['nocomm'].get_size())
+
+    def pause(self):
+        pass
+
+    def resume(self):
+        pass
+
+    def update(self):
+        if self.carlink.update():
+            st = self.carlink.getstatus()
+            if st!='nocomm':
+                print "bat %d %d" % (time.time(), self.carlink.getbattery())
+            self.image = self.icons[st]
+
+
 if __name__=='__main__':
     pygame.init()
     size = [100, 100]
     screen = pygame.display.set_mode(size)
+    background = pygame.Surface(size)
+    background.fill((255,255,255))
+
     carlink = CarLink('/car')
     p = 0
+
+    g = pygame.sprite.RenderUpdates([ carlink.getsprite((5,5)) ])
 
     done = False
     while done == False:
@@ -101,16 +181,9 @@ if __name__=='__main__':
                 print carlink.joystick.get_axis(0)
                 carlink.update_axes()
 
-        if p==20000:
-            p = 0
-            c = carlink.isconnected()
-            if c:
-                try:
-                    print carlink.isrunning()
-                    print carlink.getbattery()
-                except NotConnectedError:
-                    pass
-            else:
-                print "Not connected"
+        g.update()
+        g.clear(screen, background)
+        updates = g.draw(screen)
+        pygame.display.update(updates)
 
-        p += 1
+
