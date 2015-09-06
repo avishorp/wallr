@@ -1,5 +1,5 @@
 import pygame, time
-from WallrResources import RESOURCES, SETTINGS
+from WallrResources import RESOURCES
 
 def timeToMMSSTT(t):
     minute = int(t) / 60
@@ -12,7 +12,7 @@ class Clock(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.reset()
         self.font = pygame.font.Font(RESOURCES['clock_font'].filename, 34)
-        
+
         size = self.font.size("88:88:88")
         self.image = pygame.Surface(size)
         self.rect = pygame.Rect(pos, size)
@@ -23,7 +23,7 @@ class Clock(pygame.sprite.Sprite):
     def reset(self):
         self.elapsed = 0
         self.last = time.time()
-        
+
     def pause(self):
         self.paused = True
 

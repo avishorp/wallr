@@ -10,7 +10,7 @@ RESOURCES = {
     'fuel_gauge': GameResource.ImageResource('fuel_gauge.png', center=(100, 100),
                                 keycolor = (255,255,255),
                                 needle_pos = (132, 137)),
-    'needle': GameResource.ImageResource('needle.png', 
+    'needle': GameResource.ImageResource('needle.png',
                             center = (105, 4), keycolor = (255, 255, 255)),
     'red': GameResource.ImageResource('tl_red.png'),
     'red_yellow': GameResource.ImageResource('tl_red_yellow.png'),
@@ -21,10 +21,3 @@ RESOURCES = {
     'game_over_image': GameResource.ImageResource('game_over_img.jpg'),
     'game_over_font': GameResource.Resource('RPGSystem.ttf')
 }
-
-SETTINGS = {
-    'screen_size': (640, 480),
-    'background_color': (255, 255, 255),
-    'lock_rect': (640/2-50, 60, 100, 100),
-}
-

@@ -17,7 +17,7 @@ typedef struct {
   int8_t speed;   // Speed (0-127)
   int8_t rot;     // Rotation (-32 to +32)
   uint8_t leds;    // LED status (bitmapped)
-} msg_to_car_t;
+} __attribute__((packed)) msg_to_car_t;
 
 // Car --> RPi
 typedef struct {
@@ -26,7 +26,7 @@ typedef struct {
   uint16_t serial; // The serial number this num acknowledges
   uint8_t battery; // Battery status
   uint8_t running; // Non-zero if the car is running
-} msg_from_car_t;
+} __attribute__((packed)) msg_from_car_t;
 
 #define NRF_CHANNEL   73  // The RF channel
 #define NRF_PI_ADDR   0xF0F0F0F011LL

@@ -4,7 +4,7 @@ import TrackerLogPlayer as tracker
 from TrackerProxy import TrackerProxy
 import trkutil
 import pygame, Queue
-from WallrResources import RESOURCES, SETTINGS
+from WallrResources import RESOURCES
 import WallrSettings
 from ProgressBar import ProgressBar
 from FuelGauge import FuelGauge
@@ -25,14 +25,14 @@ class Coin(pygame.sprite.Sprite):
         self.elapsed = 0
         self.lifetime = lifetime
         self.resume()
-        
+
     def pause(self):
         self.paused = True
 
     def resume(self):
         self.paused = False
         self.t0 = time.time()
-        
+
     def update(self):
         if self.paused:
             return
@@ -41,7 +41,7 @@ class Coin(pygame.sprite.Sprite):
         dt = now - self.t0
         self.elapsed += dt
         self.t0 = now
-        
+
         if self.elapsed > self.lifetime:
             self.kill()
 
@@ -58,14 +58,15 @@ class TankPosition(StaticSprite):
         tank = pygame.Surface((size, size))
         tank.fill((255,255,255))
         tank.set_colorkey((255,255,255))
-        pygame.draw.circle(tank, (0,0,255), (size/2, size/2), size/2, 2) 
+        pygame.draw.circle(tank, (0,0,255), (size/2, size/2), size/2, 2)
 
         super(TankPosition, self).__init__(tank, (0,0))
 
 
 
-SIMULATE_TRACKER = False
+SIMULATE_TRACKER = True
 FORCE_FULLSCREEN = False
+TRACKER_LOG = "synth.log"
 
 if SIMULATE_TRACKER:
     import TrackerLogPlayer as tracker
@@ -80,7 +81,7 @@ class CoordinateTranslator(object):
         self.disp_width = int(st.display['width'])
         self.disp_height = int(st.display['height'])
         target_size = int(st.tracker['target size'])
-        
+
         self.xa, self.xb = self.calc_ab(top_left[0], bottom_right[0], 0, self.disp_width - target_size)
         self.ya, self.yb = self.calc_ab(top_left[1], bottom_right[1], 0, self.disp_height - target_size)
 
@@ -88,7 +89,7 @@ class CoordinateTranslator(object):
         a = (to_min - to_max)*1.0/(from_min - from_max)
         b = to_min - a*from_min
         return (a,b)
-    
+
     def tracker_to_screen(self, pos):
         tx = int(self.xa*pos[0] + self.xb)
         tx = max(0, min(tx, self.disp_width))
@@ -120,7 +121,7 @@ class WallrLockMode(object):
         # Draw the "lock rectangle"
         lock_rect = ast.literal_eval(WallrSettings.settings.display['lock rect'])
         pygame.draw.rect(self.image, (255,0,0), pygame.Rect(
-                (lock_rect[0], lock_rect[1]), 
+                (lock_rect[0], lock_rect[1]),
                 (lock_rect[2]-lock_rect[0], lock_rect[3]-lock_rect[1])), 10)
 
         # Draw the text
@@ -141,7 +142,7 @@ class WallrLockMode(object):
         self.screen.blit(self.image, (0,0))
         pygame.display.update()
         self.active = True
-        
+
     def pause(self):
         pass
 
@@ -155,17 +156,17 @@ class WallrLockMode(object):
     def loop(self, ev):
         if not self.active:
             return False
-            
+
         # Update and draw the progress bar
         self.widgets.update()
         self.widgets.clear(self.screen, self.background)
         updates = self.widgets.draw(self.screen)
         pygame.display.update(updates)
-        
+
         return True
 
 class WallrGameMode(object):
-    STATE_START = 0 
+    STATE_START = 0
     STATE_WAIT = 1
     STATE_PLAY = 2
     STATE_OVER = 3
@@ -243,7 +244,7 @@ class WallrGameMode(object):
             i = sans30.render(text, True, color)
             s.blit(i, center(i, y))
             y += 40
-        
+
         self.gameOverScreen = s
 
     def pause(self):
@@ -297,7 +298,7 @@ class WallrGameMode(object):
     def switchToPlay(self):
         self.state = WallrGameMode.STATE_WAIT
         self.challanges.empty()
-        self.fuelGauge.fillTank( 
+        self.fuelGauge.fillTank(
             lambda: self.fuelGauge.setConstantRate(8, self.outOfFuel))
         self.fuelGauge.resume()
         self.gameScreenSprites.add(self.traffic_light)
@@ -310,7 +311,7 @@ class WallrGameMode(object):
     def switchToGameOver(self):
         self.state = WallrGameMode.STATE_OVER
         self.createGameOverScreen(0)
-        
+
         # In game over mode, the screen is drawn
         # only once
         self.screen.blit(self.gameOverScreen, (0,0))
@@ -343,7 +344,7 @@ class WallrGameMode(object):
 
             c = Coin(p, None, 15)
             self.challanges.add(c)
-        
+
     def loop(self, ev):
         if not self.active:
             return False
@@ -361,14 +362,14 @@ class WallrGameMode(object):
             if ev.type == pygame.KEYDOWN:
                 # Start the game
                 self.switchToPlay()
-                
+
 
         elif (self.state == WallrGameMode.STATE_WAIT) or (self.state == WallrGameMode.STATE_PLAY):
             # Update and draw the widgets
             self.gameScreenSprites.update()
             self.gameScreenSprites.clear(self.screen, self.background)
             updates = self.gameScreenSprites.draw(self.screen)
-            
+
             if (self.state == WallrGameMode.STATE_PLAY):
                 # Update and draw the challanges
                 self.challanges.update()
@@ -389,7 +390,7 @@ class WallrGameMode(object):
                         c.rect.x + tl[0],
                         c.rect.y + tl[1])
                     bonus += c.processCollision(p)
-                
+
                 if bonus != 0:
                     self.fuelGauge.addFuel(bonus)
 
@@ -404,7 +405,7 @@ class WallrGameMode(object):
             pygame.display.update(updates)
 
         return True
-        
+
     def outOfFuel(self):
         print "Out of fuel"
         self.switchToGameOver()
@@ -423,7 +424,7 @@ class WallrGameMode(object):
 
         # Sort it
         table.sort(cmp=lambda x,y: 1 if x[0] < y[0] else -1)
-        
+
         # Check if the current entry enters the table
         hsindex = None
         for i in range(len(table)):
@@ -439,7 +440,7 @@ class WallrGameMode(object):
         for i in range(1,6):
             WallrSettings.settings.highscore['entry%d' % i] = str(table[i-1])
         WallrSettings.save()
-                
+
         return (table, hsindex)
 
 # This is the main game class for Wallr.
@@ -462,7 +463,7 @@ class WallrMain(object):
         self.trkMessages = Queue.Queue()
         if SIMULATE_TRACKER:
             # Initialize the simulation tracker
-            self.trk = tracker.TrackerLogPlayer(self.trackerCallback, 'tracker.log')
+            self.trk = tracker.TrackerLogPlayer(self.trackerCallback, TRACKER_LOG)
         else:
             # Initialize the tracker, and set the (calibrated) initial
             # search window position
@@ -473,7 +474,7 @@ class WallrMain(object):
             w_topleft = trx.screen_to_tracker((w[2]+30, w[3]+30))
             w_rect = trkutil.Rectangle(w_topleft[0], w_topleft[1], w_bottomright[0], w_bottomright[1])
 
-            self.trk = TrackerProxy(tracker.Tracker, self.trackerCallback, 
+            self.trk = TrackerProxy(tracker.Tracker, self.trackerCallback,
                                     targetCls = target.TrackingTarget, search_win = w_rect)
 
         # Start the tracker
@@ -485,10 +486,18 @@ class WallrMain(object):
         pygame.mouse.set_visible(False)
 
         # Create some infrastructue surfaces
-        self.screen = pygame.display.set_mode(SETTINGS['screen_size'])
-        self.background = pygame.Surface(SETTINGS['screen_size'])
-        self.background.fill(SETTINGS['background_color'])
-        
+        st = WallrSettings.settings
+        self.screen_size = (
+            int(st.display['width']),
+            int(st.display['height'])
+        )
+        self.background_color = ast.literal_eval(st.display['background color'])
+        self.lock_rect = ast.literal_eval(st.display['lock rect'])
+
+        self.screen = pygame.display.set_mode(self.screen_size)
+        self.background = pygame.Surface(self.screen_size)
+        self.background.fill(self.background_color)
+
         # Usable globals that require pygame to be initiated
         globals()['center'] = lambda img, y: (self.screen.get_rect().width/2-img.get_rect().width/2, y)
         globals()['sans30'] = pygame.font.Font(pygame.font.match_font('sans'), 40)
@@ -596,4 +605,3 @@ class WallrMain(object):
 
 game = WallrMain()
 game.start()
-
